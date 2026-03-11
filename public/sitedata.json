@@ -523,17 +523,6 @@
       "year": "2025",
       "featured": false,
       "image": ""
-    },
-    {
-      "id": 1773212864582,
-      "title": "IT Support Service",
-      "icon": "🚀",
-      "description": "Roche Pharmaceutical use IT Support service from us ",
-      "tags": [],
-      "category": "it",
-      "year": "2026",
-      "featured": false,
-      "image": ""
     }
   ],
   "team": [
@@ -542,7 +531,7 @@
       "name": "James Mitchell",
       "role": "CEO & Founder",
       "avatar": "👨‍💼",
-      "bio": "25+ years in enterprise IT.",
+      "bio": "10+ years in enterprise IT.",
       "image": ""
     },
     {
