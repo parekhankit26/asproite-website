@@ -607,25 +607,25 @@
   "timeline": [
     {
       "id": 1,
-      "year": "1999",
+      "year": "2016",
       "title": "Asproite is Born",
       "body": "Founded in London."
     },
     {
       "id": 2,
-      "year": "2005",
+      "year": "2018",
       "title": "Software & Web Division",
       "body": "Launched dedicated divisions."
     },
     {
       "id": 3,
-      "year": "2012",
+      "year": "2021",
       "title": "India Office Opens",
       "body": "Opened our Vadodara office."
     },
     {
       "id": 4,
-      "year": "2018",
+      "year": "2023",
       "title": "Cloud & AI Services",
       "body": "Became certified AWS and Azure partners."
     },
