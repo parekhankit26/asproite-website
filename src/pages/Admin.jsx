@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { adminLogin, adminLogout, adminGetData, adminSave, adminUpload, isLoggedIn, changeAdminPassword, getConfigStatus } from '../data/api.js';
+import { adminLogin, adminLogout, adminGetData, adminSave, adminUpload, isLoggedIn, changeAdminPassword, getConfigStatus, setGitHubToken, clearGitHubToken, setAnthropicKey, clearAnthropicKey } from '../data/api.js';
 import { Cursor } from '../components/index.jsx';
 
 const C = {
@@ -971,10 +971,57 @@ function PasswordSection() {
 /* ══════════════════════════════════════════
    SETTINGS & PUBLISH SECTION
    ══════════════════════════════════════════ */
+// Shared paste-a-secret form used by both the GitHub token and Anthropic
+// key cards. `onSave`/`onClear` talk to the server, which validates before
+// storing — the value never comes back to the browser afterward.
+function SecretForm({ placeholder, onSave, onClear, onDone }) {
+  const [value, setValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const save = async () => {
+    setSaving(true); setError('');
+    try {
+      await onSave(value.trim());
+      setValue('');
+      onDone();
+    } catch (e) {
+      setError(e.message || 'Could not save');
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <input
+          value={value}
+          onChange={e => { setValue(e.target.value); setError(''); }}
+          placeholder={placeholder}
+          type="password"
+          style={{ ...inp, flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}
+        />
+        <button onClick={save} disabled={saving || !value.trim()} style={{ ...bP, padding: '11px 22px', whiteSpace: 'nowrap', opacity: (!value.trim() || saving) ? 0.5 : 1 }}>
+          {saving ? '⟳ Checking…' : '🔌 Test & Save'}
+        </button>
+      </div>
+      {error && (
+        <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.2)', borderRadius: 7, fontSize: '0.8rem', color: C.danger }}>
+          ✗ {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsSection() {
   const [status, setStatus] = useState({ githubConfigured: false, aiConfigured: false });
-  useEffect(() => { getConfigStatus().then(setStatus); }, []);
+  const refreshStatus = () => getConfigStatus().then(setStatus);
+  useEffect(() => { refreshStatus(); }, []);
   const { githubConfigured: connected, aiConfigured } = status;
+
+  const [showGithubForm, setShowGithubForm] = useState(false);
+  const [showAiForm, setShowAiForm] = useState(false);
 
   const [web3key, setWeb3key] = useState(() => localStorage.getItem('asproite_web3key') || '');
   const [web3saved, setWeb3saved] = useState(false);
@@ -1019,7 +1066,7 @@ function SettingsSection() {
 
         {!connected ? (
           <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '16px 20px', fontSize: '0.82rem', color: C.muted, lineHeight: 1.7 }}>
-            GitHub sync isn't configured yet. Saves are written to the server's local copy of your content, but won't sync to GitHub until a <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>GITHUB_TOKEN</code> environment variable (a personal access token with <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>repo</code> scope) is set on the server and the app is restarted. This is set once by whoever manages the server — never pasted into this panel — so the token can't be read out of the browser.
+            GitHub sync isn't connected yet. Saves are written to the server's local copy of your content, but won't sync to GitHub until you connect a personal access token with <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>repo</code> scope below. Create one at <a href="https://github.com/settings/tokens" target="_blank" rel="noreferrer" style={{ color: C.cyan }}>github.com/settings/tokens</a> → "Generate new token (classic)". It's checked against GitHub before being saved, then stored on the server only — never readable from the browser afterward.
           </div>
         ) : (
           <div style={{ padding: '14px 18px', background: 'rgba(0,212,255,0.06)', border: `1px solid ${C.cyan}30`, borderRadius: 8 }}>
@@ -1027,6 +1074,19 @@ function SettingsSection() {
             <div style={{ fontSize: '0.8rem', color: C.muted, lineHeight: 1.6 }}>
               Every time you edit and save any section in Admin, the changes go <strong style={{ color: C.text }}>straight to your live website</strong> via the server. No extra steps needed.
             </div>
+          </div>
+        )}
+
+        {!connected || showGithubForm ? (
+          <SecretForm
+            placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            onSave={async (v) => { await setGitHubToken(v); }}
+            onDone={() => { setShowGithubForm(false); refreshStatus(); }}
+          />
+        ) : (
+          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+            <button onClick={() => setShowGithubForm(true)} style={{ ...bG, fontSize: '0.82rem' }}>🔄 Update Token</button>
+            <button onClick={async () => { await clearGitHubToken(); refreshStatus(); }} style={{ ...bD, fontSize: '0.8rem' }}>Disconnect</button>
           </div>
         )}
       </div>
@@ -1084,7 +1144,20 @@ function SettingsSection() {
           </div>
         ) : (
           <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 18px', fontSize: '0.82rem', color: C.muted, lineHeight: 1.7 }}>
-            Not configured yet. The chat widget calls Anthropic through the server, so an <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>ANTHROPIC_API_KEY</code> environment variable needs to be set on the server (get one free at <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: C.cyan }}>console.anthropic.com</a>) and the app restarted. It's set once by whoever manages the server — never pasted into this panel — so the key can't be extracted from the browser.
+            Not configured yet. Get a free key at <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: C.cyan }}>console.anthropic.com</a> → API Keys → Create Key, then paste it below. It's checked against Anthropic before being saved, then stored on the server only — never readable from the browser afterward.
+          </div>
+        )}
+
+        {!aiConfigured || showAiForm ? (
+          <SecretForm
+            placeholder="sk-ant-api03-xxxxxxxxxxxxxxxxxxxx"
+            onSave={async (v) => { await setAnthropicKey(v); }}
+            onDone={() => { setShowAiForm(false); refreshStatus(); }}
+          />
+        ) : (
+          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+            <button onClick={() => setShowAiForm(true)} style={{ ...bG, fontSize: '0.82rem' }}>🔄 Update Key</button>
+            <button onClick={async () => { await clearAnthropicKey(); refreshStatus(); }} style={{ ...bD, fontSize: '0.8rem' }}>Remove</button>
           </div>
         )}
       </div>

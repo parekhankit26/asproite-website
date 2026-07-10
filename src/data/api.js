@@ -288,9 +288,44 @@ export async function changeAdminPassword(currentPw, newPw) {
   return { ok: true };
 }
 
-// Reports whether the server has GitHub sync / AI chat configured via its
-// own env vars — used to render read-only status in Admin, never accepts
-// secrets from the browser.
+// Submits a new GitHub token / Anthropic key to the server for validation
+// and storage. The value is sent once, over the authenticated session, and
+// never returned — only a configured/not-configured status comes back.
+export async function setGitHubToken(token) {
+  const res = await fetch('/api/admin/github-token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ token }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Could not save token');
+  return { ok: true };
+}
+
+export async function clearGitHubToken() {
+  await fetch('/api/admin/github-token/clear', { method: 'POST', credentials: 'include' }).catch(() => {});
+}
+
+export async function setAnthropicKey(key) {
+  const res = await fetch('/api/admin/anthropic-key', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ key }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Could not save key');
+  return { ok: true };
+}
+
+export async function clearAnthropicKey() {
+  await fetch('/api/admin/anthropic-key/clear', { method: 'POST', credentials: 'include' }).catch(() => {});
+}
+
+// Reports whether the server currently has GitHub sync / AI chat
+// configured (via env var or an admin-panel-set value) — used to render
+// read-only status in Admin, never returns the secrets themselves.
 export async function getConfigStatus() {
   try {
     const res = await fetch('/api/admin/config-status', { credentials: 'include' });

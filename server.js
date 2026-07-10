@@ -9,6 +9,7 @@ const store = require('./server/store');
 const auth = require('./server/auth');
 const content = require('./server/content');
 const ai = require('./server/ai');
+const secrets = require('./server/secrets');
 
 store.ensureAdminSeeded();
 
@@ -96,6 +97,55 @@ app.get('/api/admin/config-status', auth.requireAuth, (req, res) => {
     githubConfigured: content.isGitHubConfigured(),
     aiConfigured: ai.isConfigured(),
   });
+});
+
+// ── Rotatable secrets (GitHub token / Anthropic key) ────────
+// Validated against the real API before being stored, then kept
+// server-side only — the browser never sees the value again, just a
+// configured/not-configured status.
+app.post('/api/admin/github-token', auth.requireAuth, async (req, res) => {
+  const { token } = req.body || {};
+  if (!token || typeof token !== 'string') return res.status(400).json({ error: 'Token required' });
+  try {
+    const check = await fetch('https://api.github.com/repos/parekhankit26/asproite-website', {
+      headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' },
+    });
+    if (!check.ok) {
+      const err = await check.json().catch(() => ({}));
+      return res.status(400).json({ error: err.message || 'Invalid token' });
+    }
+    const info = await check.json();
+    if (!info.permissions?.push) return res.status(400).json({ error: 'Token is valid but lacks push access to this repo' });
+  } catch (e) {
+    return res.status(502).json({ error: 'Could not reach GitHub to validate the token' });
+  }
+  secrets.setGitHubToken(token);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/github-token/clear', auth.requireAuth, (req, res) => {
+  secrets.clearGitHubToken();
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/anthropic-key', auth.requireAuth, async (req, res) => {
+  const { key } = req.body || {};
+  if (!key || typeof key !== 'string') return res.status(400).json({ error: 'Key required' });
+  try {
+    const check = await fetch('https://api.anthropic.com/v1/models', {
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    });
+    if (!check.ok) return res.status(400).json({ error: 'Invalid API key' });
+  } catch (e) {
+    return res.status(502).json({ error: 'Could not reach Anthropic to validate the key' });
+  }
+  secrets.setAnthropicKey(key);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/anthropic-key/clear', auth.requireAuth, (req, res) => {
+  secrets.clearAnthropicKey();
+  res.json({ ok: true });
 });
 
 // ── AI chat proxy ───────────────────────────────────────────

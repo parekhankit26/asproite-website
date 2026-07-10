@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const secrets = require('./secrets');
 
 const SITEDATA_PATH = path.join(__dirname, '..', 'public', 'sitedata.json');
 
@@ -25,7 +26,7 @@ function writeLocal(data) {
 // { ok: true } on success, or { ok: false, error } — never throws, so a
 // GitHub outage doesn't take down the local save.
 async function pushToGitHub(data) {
-  const token = process.env.GITHUB_TOKEN;
+  const token = secrets.getGitHubToken();
   if (!token) return { ok: false, error: 'github_not_configured' };
 
   const headers = {
@@ -60,4 +61,4 @@ async function pushToGitHub(data) {
   }
 }
 
-module.exports = { readLocal, writeLocal, pushToGitHub, isGitHubConfigured: () => !!process.env.GITHUB_TOKEN };
+module.exports = { readLocal, writeLocal, pushToGitHub, isGitHubConfigured: () => !!secrets.getGitHubToken() };

@@ -1,4 +1,5 @@
 const content = require('./content');
+const secrets = require('./secrets');
 
 function buildSystemPrompt(data) {
   const si = data?.siteInfo || {};
@@ -55,13 +56,13 @@ BEHAVIOUR RULES:
 10. End responses with a helpful follow-up question or offer when appropriate`;
 }
 
-const isConfigured = () => !!process.env.ANTHROPIC_API_KEY;
+const isConfigured = () => !!secrets.getAnthropicKey();
 
 // Sends a chat turn to Claude using the server-side API key. `messages` is
 // the raw {role, content} history from the client — never trusted beyond
 // that shape. Returns the assistant's reply text.
 async function chat(messages) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = secrets.getAnthropicKey();
   if (!apiKey) throw Object.assign(new Error('AI not configured'), { code: 'not_configured' });
 
   const safeMessages = Array.isArray(messages)
