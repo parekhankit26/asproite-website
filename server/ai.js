@@ -81,7 +81,7 @@ async function chat(messages) {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-5',
       max_tokens: 400,
       system: buildSystemPrompt(siteData),
       messages: safeMessages,
@@ -93,7 +93,8 @@ async function chat(messages) {
     throw Object.assign(new Error(err.error?.message || `Anthropic API error (${res.status})`), { code: 'upstream_error' });
   }
   const result = await res.json();
-  return result.content?.[0]?.text || "I'm sorry, I didn't get a response. Please try again or contact us directly at info@asproite.com";
+  const textBlock = result.content?.find(block => block.type === 'text');
+  return textBlock?.text || "I'm sorry, I didn't get a response. Please try again or contact us directly at info@asproite.com";
 }
 
 module.exports = { chat, isConfigured };
