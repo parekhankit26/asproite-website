@@ -2,23 +2,15 @@
 // ASPROITE — DATA API
 // ═══════════════════════════════════════════════════════════════
 
-const ADMIN_PW_KEY      = 'asproite_admin_pw';
-const GITHUB_TOKEN_KEY  = 'asproite_github_token';
 const DB_CACHE_KEY      = 'asproite_db';
 const DB_CACHE_TIME_KEY = 'asproite_db_cachetime';
-const DEFAULT_PASSWORD  = 'asproite2024';
 const CACHE_TTL_MS      = 60 * 1000; // 60 seconds
 
 const GITHUB_OWNER  = 'parekhankit26';
 const GITHUB_REPO   = 'asproite-website';
 const GITHUB_FILE   = 'public/sitedata.json';
 const GITHUB_BRANCH = 'main';
-const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`;
 const GITHUB_RAW_URL = `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${GITHUB_FILE}`;
-
-export function getAdminPassword() { return localStorage.getItem(ADMIN_PW_KEY) || DEFAULT_PASSWORD; }
-export function getGitHubToken()   { return localStorage.getItem(GITHUB_TOKEN_KEY) || ''; }
-export function isGitHubConnected(){ return !!localStorage.getItem(GITHUB_TOKEN_KEY); }
 
 // ─── Defaults ─────────────────────────────────────────────────
 function getDefaults() {
@@ -190,32 +182,6 @@ async function fetchLiveData() {
   return null;
 }
 
-// ─── GitHub push (admin only) ─────────────────────────────────
-async function pushToGitHub(data) {
-  const token = getGitHubToken();
-  if (!token) return { ok: false, error: 'no_token' };
-  const headers = {
-    'Authorization': `token ${token}`,
-    'Content-Type': 'application/json',
-    'Accept': 'application/vnd.github.v3+json',
-  };
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-  let sha = null;
-  try {
-    const info = await fetch(GITHUB_API_URL, { headers });
-    if (info.ok) sha = (await info.json()).sha;
-  } catch(e) {}
-  try {
-    const res = await fetch(GITHUB_API_URL, {
-      method: 'PUT', headers,
-      body: JSON.stringify({ message: `Admin update — ${new Date().toLocaleString('en-GB')}`, content, branch: GITHUB_BRANCH, ...(sha ? { sha } : {}) }),
-    });
-    if (res.ok) return { ok: true };
-    const err = await res.json();
-    return { ok: false, error: err.message || 'GitHub API error' };
-  } catch(e) { return { ok: false, error: e.message }; }
-}
-
 // ─── Public API ───────────────────────────────────────────────
 
 // Used by website pages — returns instantly (cache or defaults), refreshes in background
@@ -246,7 +212,8 @@ export async function adminGetData() {
   return getDefaults();
 }
 
-// Admin save — updates cache + GitHub, fires ONE event only
+// Admin save — writes through the server (which owns the GitHub token),
+// updates cache, fires ONE event only
 export async function adminSave(section, sectionData) {
   const current = await adminGetData();
   current[section] = sectionData;
@@ -263,35 +230,76 @@ export async function adminSave(section, sectionData) {
     ch.close();
   } catch(e) {}
 
-  // Push to GitHub (non-blocking — UI doesn't wait for this)
-  const result = await pushToGitHub(current);
-  return result;
-}
-
-export async function testGitHubToken(token) {
   try {
-    const res = await fetch(`https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}`, {
-      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    const res = await fetch('/api/content', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ section, sectionData }),
     });
-    if (!res.ok) { const e = await res.json(); return { ok: false, error: e.message || 'Invalid token' }; }
-    return { ok: true };
-  } catch(e) { return { ok: false, error: 'Network error' }; }
+    if (res.status === 401) return { ok: false, error: 'not_authenticated' };
+    const body = await res.json();
+    if (!res.ok) return { ok: false, error: body.error || 'Save failed' };
+    // body.github reflects whether the server-side GitHub push succeeded
+    return body.github?.ok ? { ok: true } : { ok: false, error: body.github?.error || 'no_token' };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
 }
 
 export async function adminLogin(password) {
-  if (password !== getAdminPassword()) throw new Error('Wrong password');
-  localStorage.setItem('adminToken', 'local-admin-token');
-  return { token: 'local-admin-token' };
-}
-export async function adminLogout() { localStorage.removeItem('adminToken'); }
-export function isLoggedIn() { return localStorage.getItem('adminToken') === 'local-admin-token'; }
-export async function changeAdminPassword(currentPw, newPw) {
-  if (currentPw !== getAdminPassword()) throw new Error('Current password is incorrect');
-  if (!newPw || newPw.length < 6) throw new Error('New password must be at least 6 characters');
-  localStorage.setItem(ADMIN_PW_KEY, newPw);
+  const res = await fetch('/api/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ password }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || 'Wrong password');
+  }
   return { ok: true };
 }
-export async function resetAdminPassword() { localStorage.removeItem(ADMIN_PW_KEY); return { ok: true }; }
+
+export async function adminLogout() {
+  await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+}
+
+export async function isLoggedIn() {
+  try {
+    const res = await fetch('/api/admin/session', { credentials: 'include' });
+    if (!res.ok) return false;
+    const body = await res.json();
+    return !!body.loggedIn;
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function changeAdminPassword(currentPw, newPw) {
+  const res = await fetch('/api/admin/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Could not change password');
+  return { ok: true };
+}
+
+// Reports whether the server has GitHub sync / AI chat configured via its
+// own env vars — used to render read-only status in Admin, never accepts
+// secrets from the browser.
+export async function getConfigStatus() {
+  try {
+    const res = await fetch('/api/admin/config-status', { credentials: 'include' });
+    if (!res.ok) return { githubConfigured: false, aiConfigured: false };
+    return await res.json();
+  } catch (e) {
+    return { githubConfigured: false, aiConfigured: false };
+  }
+}
 export async function adminUpload(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

@@ -7,6 +7,9 @@ node_modules/
 dist/
 dist-ssr/
 
+# Server-side secrets (admin password hash)
+/data/
+
 # Local env files
 .env
 .env.local

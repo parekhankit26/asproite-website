@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { adminLogin, adminLogout, adminGetData, adminSave, adminUpload, isLoggedIn, changeAdminPassword, resetAdminPassword, testGitHubToken, isGitHubConnected, getGitHubToken } from '../data/api.js';
+import { adminLogin, adminLogout, adminGetData, adminSave, adminUpload, isLoggedIn, changeAdminPassword, getConfigStatus } from '../data/api.js';
 import { Cursor } from '../components/index.jsx';
 
 const C = {
@@ -169,16 +169,8 @@ function Login({ onLogin }) {
   const submit = async (e) => {
     e.preventDefault(); setLoading(true); setErr('');
     try { await adminLogin(pw); onLogin(); }
-    catch { setErr('Incorrect password. Please try again.'); }
+    catch (e) { setErr(e.message || 'Incorrect password. Please try again.'); }
     setLoading(false);
-  };
-
-  const doReset = async () => {
-    if (window.confirm('Reset password back to the default (asproite2024)?')) {
-      await resetAdminPassword();
-      setForgot(false); setErr('');
-      alert('Password reset to default: asproite2024\n\nPlease log in again with the default password.');
-    }
   };
 
   return (
@@ -210,16 +202,11 @@ function Login({ onLogin }) {
             </form>
           ) : (
             <div>
-              <h3 style={{ fontFamily:font.head, color:C.text, marginBottom:8, fontSize:'1.1rem' }}>🔑 Reset Password</h3>
-              <p style={{ color:C.muted, fontSize:'0.84rem', lineHeight:1.65, marginBottom:20 }}>Resets your admin password back to the default. You can then log in and set a new one from Security.</p>
-              <div style={{ background:C.cyanDim, border:`1px solid ${C.border}`, borderRadius:8, padding:'12px 16px', marginBottom:20 }}>
-                <div style={{ fontSize:'0.68rem', color:C.muted, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:4 }}>Default password</div>
-                <div style={{ fontFamily:'monospace', color:C.cyan, fontSize:'1rem' }}>asproite2024</div>
-              </div>
-              <div style={{ display:'flex', gap:10 }}>
-                <button onClick={doReset} style={{ ...bP, flex:1, justifyContent:'center' }}>Reset to Default</button>
-                <button onClick={() => setForgot(false)} style={bG}>Cancel</button>
-              </div>
+              <h3 style={{ fontFamily:font.head, color:C.text, marginBottom:8, fontSize:'1.1rem' }}>🔑 Forgot Password</h3>
+              <p style={{ color:C.muted, fontSize:'0.84rem', lineHeight:1.65, marginBottom:20 }}>
+                For security, passwords can't be reset from this screen. Whoever has access to the server can reset it by deleting <code style={{ background:C.surface2, padding:'1px 6px', borderRadius:4, color:C.cyan }}>data/admin-auth.json</code> and restarting the app — a new one-time password will be printed to the server log, or set an <code style={{ background:C.surface2, padding:'1px 6px', borderRadius:4, color:C.cyan }}>ADMIN_PASSWORD</code> environment variable before restarting.
+              </p>
+              <button onClick={() => setForgot(false)} style={{ ...bG, width:'100%', justifyContent:'center' }}>Back to Sign In</button>
             </div>
           )}
         </div>
@@ -985,47 +972,14 @@ function PasswordSection() {
    SETTINGS & PUBLISH SECTION
    ══════════════════════════════════════════ */
 function SettingsSection() {
-  const [token, setToken] = useState(() => getGitHubToken());
-  const [tokenInput, setTokenInput] = useState(() => getGitHubToken());
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState(null); // null | 'ok' | 'fail'
-  const [testError, setTestError] = useState('');
-  const [claudeKey, setClaudeKey] = useState(() => localStorage.getItem('asproite_claude_key') || '');
-  const [claudeSaved, setClaudeSaved] = useState(false);
-  const saveClaudeKey = () => {
-    localStorage.setItem('asproite_claude_key', claudeKey.trim());
-    setClaudeSaved(true);
-    setTimeout(() => setClaudeSaved(false), 2500);
-  };
+  const [status, setStatus] = useState({ githubConfigured: false, aiConfigured: false });
+  useEffect(() => { getConfigStatus().then(setStatus); }, []);
+  const { githubConfigured: connected, aiConfigured } = status;
+
   const [web3key, setWeb3key] = useState(() => localStorage.getItem('asproite_web3key') || '');
   const [web3saved, setWeb3saved] = useState(false);
 
-  const connected = !!token;
-
   const bCard = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '28px', marginBottom: 24 };
-
-  const handleTestAndSave = async () => {
-    setTesting(true);
-    setTestResult(null);
-    setTestError('');
-    const result = await testGitHubToken(tokenInput.trim());
-    if (result.ok) {
-      localStorage.setItem('asproite_github_token', tokenInput.trim());
-      setToken(tokenInput.trim());
-      setTestResult('ok');
-    } else {
-      setTestResult('fail');
-      setTestError(result.error || 'Connection failed');
-    }
-    setTesting(false);
-  };
-
-  const handleDisconnect = () => {
-    localStorage.removeItem('asproite_github_token');
-    setToken('');
-    setTokenInput('');
-    setTestResult(null);
-  };
 
   const saveWeb3Key = async () => {
     localStorage.setItem('asproite_web3key', web3key.trim());
@@ -1064,72 +1018,16 @@ function SettingsSection() {
         </div>
 
         {!connected ? (
-          <>
-            {/* Step-by-step instructions */}
-            <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '16px 20px', marginBottom: 20 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 14, color: C.cyan }}>How to get your GitHub Token (2 minutes):</div>
-              {[
-                ['Go to', 'github.com → click your profile photo (top right) → Settings'],
-                ['Scroll to', '"Developer settings" at the bottom of the left sidebar'],
-                ['Click', '"Personal access tokens" → "Tokens (classic)" → "Generate new token (classic)"'],
-                ['Give it a name:', '"Asproite Website" — set Expiration to "No expiration"'],
-                ['Tick ONE box:', 'repo (this gives access to update your website files)'],
-                ['Click', '"Generate token" → Copy the token shown (starts with ghp_)'],
-                ['Paste it below', 'and click "Test & Connect"'],
-              ].map(([label, desc], i) => (
-                <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 10 }}>
-                  <div style={{ width: 22, height: 22, borderRadius: '50%', background: C.cyan, color: C.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.72rem', flexShrink: 0, marginTop: 1 }}>{i + 1}</div>
-                  <div style={{ fontSize: '0.8rem', color: C.muted, lineHeight: 1.55 }}>
-                    <strong style={{ color: C.text }}>{label}</strong> {desc}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <label style={{ fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: C.muted, display: 'block', marginBottom: 7 }}>Paste GitHub Token</label>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-              <input
-                value={tokenInput}
-                onChange={e => { setTokenInput(e.target.value); setTestResult(null); }}
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                type="password"
-                style={{ ...inp, flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}
-              />
-              <button
-                onClick={handleTestAndSave}
-                disabled={testing || !tokenInput.trim()}
-                style={{ ...bP, padding: '11px 22px', whiteSpace: 'nowrap', opacity: (!tokenInput.trim() || testing) ? 0.5 : 1 }}>
-                {testing ? '⟳ Testing…' : '🔌 Test & Connect'}
-              </button>
-            </div>
-            {testResult === 'fail' && (
-              <div style={{ padding: '10px 14px', background: 'rgba(255,71,87,0.08)', border: '1px solid rgba(255,71,87,0.2)', borderRadius: 7, fontSize: '0.8rem', color: C.danger }}>
-                ✗ {testError} — Check the token and try again.
-              </div>
-            )}
-          </>
+          <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '16px 20px', fontSize: '0.82rem', color: C.muted, lineHeight: 1.7 }}>
+            GitHub sync isn't configured yet. Saves are written to the server's local copy of your content, but won't sync to GitHub until a <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>GITHUB_TOKEN</code> environment variable (a personal access token with <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>repo</code> scope) is set on the server and the app is restarted. This is set once by whoever manages the server — never pasted into this panel — so the token can't be read out of the browser.
+          </div>
         ) : (
-          <>
-            <div style={{ padding: '14px 18px', background: 'rgba(0,212,255,0.06)', border: `1px solid ${C.cyan}30`, borderRadius: 8, marginBottom: 16 }}>
-              <div style={{ fontSize: '0.85rem', color: C.text, fontWeight: 600, marginBottom: 4 }}>✅ You are connected!</div>
-              <div style={{ fontSize: '0.8rem', color: C.muted, lineHeight: 1.6 }}>
-                Every time you edit and save any section in Admin, the changes go <strong style={{ color: C.text }}>instantly to your live website</strong>. Every visitor, on every device, will see your updates within seconds. No extra steps needed.
-              </div>
+          <div style={{ padding: '14px 18px', background: 'rgba(0,212,255,0.06)', border: `1px solid ${C.cyan}30`, borderRadius: 8 }}>
+            <div style={{ fontSize: '0.85rem', color: C.text, fontWeight: 600, marginBottom: 4 }}>✅ Connected!</div>
+            <div style={{ fontSize: '0.8rem', color: C.muted, lineHeight: 1.6 }}>
+              Every time you edit and save any section in Admin, the changes go <strong style={{ color: C.text }}>straight to your live website</strong> via the server. No extra steps needed.
             </div>
-            {testResult === 'ok' && (
-              <div style={{ padding: '10px 14px', background: 'rgba(0,255,136,0.07)', border: '1px solid rgba(0,255,136,0.2)', borderRadius: 7, fontSize: '0.8rem', color: C.success, marginBottom: 14 }}>
-                ✓ Connection tested and working perfectly.
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={handleTestAndSave} disabled={testing} style={{ ...bG, fontSize: '0.82rem' }}>
-                {testing ? '⟳ Testing…' : '🔄 Re-test Connection'}
-              </button>
-              <button onClick={handleDisconnect} style={{ ...bD, fontSize: '0.8rem' }}>
-                Disconnect
-              </button>
-            </div>
-          </>
+          </div>
         )}
       </div>
 
@@ -1167,46 +1065,28 @@ function SettingsSection() {
       </div>
 
       {/* ── Ask Asproite AI Key ── */}
-      <div style={{ ...bCard, border: claudeKey ? `1px solid ${C.cyan}50` : `1px solid ${C.border}` }}>
+      <div style={{ ...bCard, border: aiConfigured ? `1px solid ${C.cyan}50` : `1px solid ${C.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <span style={{ fontSize: '1.8rem' }}>🤖</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: '1rem' }}>
               Ask Asproite AI
-              {claudeKey && <span style={{ marginLeft: 10, fontSize: '0.75rem', background: C.cyanDim, color: C.cyan, padding: '2px 10px', borderRadius: 20, fontFamily: 'inherit' }}>✓ Active</span>}
+              {aiConfigured && <span style={{ marginLeft: 10, fontSize: '0.75rem', background: C.cyanDim, color: C.cyan, padding: '2px 10px', borderRadius: 20, fontFamily: 'inherit' }}>✓ Active</span>}
             </div>
             <div style={{ color: C.muted, fontSize: '0.78rem', marginTop: 2 }}>
               Powers the AI chat widget that appears on every page of your website
             </div>
           </div>
         </div>
-        <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 18px', marginBottom: 16, fontSize: '0.8rem', color: C.muted, lineHeight: 1.7 }}>
-          <strong style={{ color: C.cyan }}>How to get your free Anthropic API key:</strong><br />
-          1. Go to <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: C.cyan }}>console.anthropic.com</a> → Sign up free<br />
-          2. Click <strong style={{ color: C.text }}>Get API Keys</strong> → <strong style={{ color: C.text }}>Create Key</strong><br />
-          3. Copy the key (starts with <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>sk-ant-</code>) and paste below
-        </div>
-        <label style={{ fontSize: '0.72rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: C.muted, display: 'block', marginBottom: 7 }}>Anthropic API Key</label>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <input
-            value={claudeKey}
-            onChange={e => setClaudeKey(e.target.value)}
-            placeholder="sk-ant-api03-xxxxxxxxxxxxxxxxxxxx"
-            type="password"
-            style={{ ...inp, flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}
-          />
-          <button onClick={saveClaudeKey} disabled={!claudeKey.trim()} style={{ ...bP, padding: '11px 22px', whiteSpace: 'nowrap', opacity: claudeKey.trim() ? 1 : 0.5 }}>
-            {claudeSaved ? '✓ Saved!' : 'Save Key'}
-          </button>
-        </div>
-        {claudeKey && (
-          <div style={{ marginTop: 10, fontSize: '0.78rem', color: C.success }}>
-            ✓ AI key saved. The Asproite AI widget is now live on your website.
+        {aiConfigured ? (
+          <div style={{ padding: '14px 18px', background: 'rgba(0,212,255,0.06)', border: `1px solid ${C.cyan}30`, borderRadius: 8, fontSize: '0.82rem', color: C.muted, lineHeight: 1.6 }}>
+            ✅ The chat widget is live for every visitor, powered by the server's own API key.
+          </div>
+        ) : (
+          <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 18px', fontSize: '0.82rem', color: C.muted, lineHeight: 1.7 }}>
+            Not configured yet. The chat widget calls Anthropic through the server, so an <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>ANTHROPIC_API_KEY</code> environment variable needs to be set on the server (get one free at <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: C.cyan }}>console.anthropic.com</a>) and the app restarted. It's set once by whoever manages the server — never pasted into this panel — so the key can't be extracted from the browser.
           </div>
         )}
-        <div style={{ marginTop: 12, fontSize: '0.75rem', color: C.muted, lineHeight: 1.6 }}>
-          🔒 Your API key is stored only in this browser. Never shared or uploaded anywhere.
-        </div>
       </div>
 
       {/* ── Backup / Restore ── */}
@@ -1252,7 +1132,8 @@ function SettingsSection() {
 }
 
 export default function Admin() {
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn());
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [loggedIn, setLoggedIn] = useState(false);
   const [active, setActive] = useState('homePage');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1263,6 +1144,10 @@ export default function Admin() {
     setToast({ show:true, message:msg, type });
     setTimeout(() => setToast(t=>({...t,show:false})), 3500);
   };
+
+  useEffect(() => {
+    isLoggedIn().then(v => { setLoggedIn(v); setCheckingSession(false); });
+  }, []);
 
   useEffect(() => {
     if (!loggedIn) { setLoading(false); return; }
@@ -1278,10 +1163,13 @@ export default function Admin() {
       // Do NOT re-fetch from GitHub — it hasn't propagated yet (race condition).
       setData(prev => ({ ...prev, [section]: sectionData }));
 
-      if (result && result.ok) {
+      if (result && result.error === 'not_authenticated') {
+        setLoggedIn(false);
+        showToast('Session expired. Please sign in again.', 'error');
+      } else if (result && result.ok) {
         showToast('✅ Saved! Live on all devices in ~2 minutes.');
-      } else if (result && result.error === 'no_token') {
-        showToast('⚠️ Saved on this browser only. Go to Settings & Publish → connect GitHub to sync to all devices.', 'error');
+      } else if (result && result.error === 'github_not_configured') {
+        showToast('⚠️ Saved on the server only. GitHub sync isn\'t configured — see Settings & Publish.', 'error');
       } else if (result && !result.ok) {
         showToast('Saved locally. GitHub sync issue: ' + result.error, 'error');
       } else {
@@ -1291,6 +1179,12 @@ export default function Admin() {
     setSaving(false);
   };
 
+  if (checkingSession) return (
+    <div style={{ minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:font.head }}>
+      <Cursor />
+      <div style={{ textAlign:'center' }}><div style={{ fontSize:'2rem', marginBottom:12 }}>⟳</div><div style={{ color:C.cyan }}>Loading...</div></div>
+    </div>
+  );
   if (!loggedIn) return <Login onLogin={() => setLoggedIn(true)} />;
   if (loading) return (
     <div style={{ minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:font.head }}>
