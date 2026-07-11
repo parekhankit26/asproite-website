@@ -150,15 +150,19 @@ export default function AsproiteAI() {
         .aiai-close:hover { background:rgba(255,255,255,0.08) !important; }
         .aiai-suggest:hover { background:rgba(0,212,255,0.12) !important; border-color:${C.cyan} !important; color:${C.cyan} !important; }
         .aiai-bubble-btn:hover { transform:scale(1.08) !important; }
+        @media (max-width: 480px) {
+          .aiai-input { font-size:16px !important; }
+        }
       `}</style>
 
-      <div style={{ position:'fixed', bottom:28, left:28, zIndex:99990 }}>
+      <div style={{ position:'fixed', bottom:'max(20px, calc(env(safe-area-inset-bottom) + 16px))', right:'max(20px, calc(env(safe-area-inset-right) + 16px))', zIndex:99990 }}>
 
         {/* ── Chat window ── */}
         {open && (
           <div style={{
-            position:'absolute', bottom:72, left:0,
-            width:340, height:500,
+            position:'absolute', bottom:72, right:0,
+            width:'min(340px, calc(100vw - 40px))', height:'min(500px, calc(100vh - 160px))',
+            maxWidth:340, maxHeight:560,
             background:C.surface,
             border:`1px solid ${C.border}`,
             borderRadius:20,
@@ -237,9 +241,9 @@ export default function AsproiteAI() {
         <div style={{ position:'relative' }}>
           {/* Tooltip shown before first open */}
           {!started && !open && (
-            <div style={{ position:'absolute', bottom:'110%', left:0, background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:'8px 14px', whiteSpace:'nowrap', fontSize:12, color:C.text, boxShadow:'0 8px 24px rgba(0,0,0,0.4)', pointerEvents:'none', animation:'aiai-fadeup 0.3s ease' }}>
+            <div style={{ position:'absolute', bottom:'110%', right:0, maxWidth:'calc(100vw - 40px)', background:C.surface, border:`1px solid ${C.border}`, borderRadius:10, padding:'8px 14px', whiteSpace:'nowrap', fontSize:12, color:C.text, boxShadow:'0 8px 24px rgba(0,0,0,0.4)', pointerEvents:'none', animation:'aiai-fadeup 0.3s ease' }}>
               <span style={{ color:C.cyan, fontWeight:700 }}>Ask Asproite AI</span> — instant answers ✨
-              <div style={{ position:'absolute', bottom:-5, left:16, width:10, height:10, background:C.surface, borderRight:`1px solid ${C.border}`, borderBottom:`1px solid ${C.border}`, transform:'rotate(45deg)' }} />
+              <div style={{ position:'absolute', bottom:-5, right:16, width:10, height:10, background:C.surface, borderRight:`1px solid ${C.border}`, borderBottom:`1px solid ${C.border}`, transform:'rotate(45deg)' }} />
             </div>
           )}
 
