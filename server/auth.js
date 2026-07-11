@@ -6,14 +6,22 @@ const SESSION_COOKIE = 'asproite_session';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 // Sessions are stateless, signed tokens rather than a server-side store —
-// this host restarts the app far more often than expected (health checks,
-// idle cycling), and an in-memory or file-backed session store would drop
-// everyone on every restart, mid-edit. Signing with a key derived from the
-// persisted password hash means a token stays valid across restarts as
-// long as the password hasn't changed, with no extra state to lose.
+// this host restarts the app far more often than expected, runs more than
+// one instance of the process, and doesn't reliably share local disk state
+// between them. An in-memory or file-backed session store would drop
+// sessions on restart, or fail whenever a request lands on a different
+// instance than the one that issued the token.
+//
+// Signing with a key derived from ADMIN_PASSWORD itself (not the locally
+// bcrypt-hashed copy, which is salted differently per instance) means every
+// instance derives the identical key, so a token verifies the same way no
+// matter which instance handles the request or how many times any of them
+// have restarted. Falls back to the local password hash only when no env
+// var is set — safe on a single instance, best-effort on multiple.
 function signingKey() {
-  const hash = store.getPasswordHash() || 'fallback-key-no-password-set';
-  return crypto.createHash('sha256').update(hash).digest();
+  const envPassword = (process.env.ADMIN_PASSWORD || '').trim();
+  const material = envPassword || store.getPasswordHash() || 'fallback-key-no-password-set';
+  return crypto.createHash('sha256').update(material).digest();
 }
 
 function createSession() {
