@@ -512,6 +512,17 @@
       "year": "2023",
       "featured": false,
       "image": ""
+    },
+    {
+      "id": 1783780389717,
+      "title": "A One Hair Salon",
+      "icon": "🚀",
+      "description": "A one Hair Salon - Luxurious salon in the market.",
+      "tags": [],
+      "category": "web",
+      "year": "2025",
+      "featured": true,
+      "image": ""
     }
   ],
   "team": [
