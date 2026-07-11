@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { adminLogin, adminLogout, adminGetData, adminSave, adminUpload, isLoggedIn, changeAdminPassword, getConfigStatus, setGitHubToken, clearGitHubToken, setAnthropicKey, clearAnthropicKey } from '../data/api.js';
+import { adminLogin, adminLoginVerify2FA, adminLogout, adminHeartbeat, adminGetData, adminSave, adminUpload, isLoggedIn, changeAdminPassword, getConfigStatus, setGitHubToken, clearGitHubToken, setAnthropicKey, clearAnthropicKey, get2FAStatus, setup2FA, confirm2FA, disable2FA } from '../data/api.js';
 import { Cursor } from '../components/index.jsx';
 
 const C = {
@@ -164,14 +164,27 @@ function CTABlock({ f, s, prefix='cta' }) {
 // ── LOGIN ──────────────────────────────────────────────────
 function Login({ onLogin }) {
   const [pw, setPw] = useState('');
+  const [code, setCode] = useState('');
   const [err, setErr] = useState('');
   const [loading, setLoading] = useState(false);
   const [forgot, setForgot] = useState(false);
+  const [needs2FA, setNeeds2FA] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault(); setLoading(true); setErr('');
-    try { await adminLogin(pw); onLogin(); }
+    try {
+      const result = await adminLogin(pw);
+      if (result && result.needs2FA) { setNeeds2FA(true); }
+      else onLogin();
+    }
     catch (e) { setErr(e.message || 'Incorrect password. Please try again.'); }
+    setLoading(false);
+  };
+
+  const submit2FA = async (e) => {
+    e.preventDefault(); setLoading(true); setErr('');
+    try { await adminLoginVerify2FA(pw, code); onLogin(); }
+    catch (e) { setErr(e.message || 'Invalid code. Please try again.'); }
     setLoading(false);
   };
 
@@ -187,7 +200,23 @@ function Login({ onLogin }) {
         </div>
         <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:'36px 40px', position:'relative', overflow:'hidden', boxShadow:`0 24px 80px rgba(0,0,0,0.5)` }}>
           <div style={{ position:'absolute', top:0, left:'20%', right:'20%', height:1, background:`linear-gradient(90deg,transparent,${C.cyan},transparent)` }} />
-          {!forgot ? (
+          {!forgot && needs2FA ? (
+            <form onSubmit={submit2FA}>
+              <div style={{ marginBottom:24 }}>
+                <label style={{ ...lbl, marginBottom:8 }}>Authenticator Code</label>
+                <div style={{ position:'relative' }}>
+                  <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} style={{ ...inp, paddingLeft:44, fontSize:'1.1rem', letterSpacing:'0.3em', textAlign:'center' }} placeholder="000000" value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))} autoFocus />
+                  <span style={{ position:'absolute', left:14, top:'50%', transform:'translateY(-50%)', fontSize:'1rem', opacity:0.4 }}>📱</span>
+                </div>
+                <div style={{ fontSize:'0.78rem', color:C.muted, marginTop:8 }}>Enter the 6-digit code from your authenticator app.</div>
+              </div>
+              {err && <div style={{ background:C.dangerDim, border:`1px solid rgba(255,71,87,0.2)`, borderRadius:8, padding:'10px 14px', marginBottom:18, color:C.danger, fontSize:'0.82rem' }}>⚠️ {err}</div>}
+              <button type="submit" style={{ ...bP, width:'100%', padding:'13px', fontSize:'0.95rem', justifyContent:'center', borderRadius:9 }} disabled={loading || code.length!==6}>{loading?'⟳ Verifying...':'→ Verify & Sign In'}</button>
+              <div style={{ textAlign:'center', marginTop:18 }}>
+                <button type="button" onClick={() => { setNeeds2FA(false); setCode(''); setErr(''); }} style={{ background:'none', border:'none', color:C.muted, fontSize:'0.8rem', cursor:'pointer', textDecoration:'underline', fontFamily:font.body }}>← Back</button>
+              </div>
+            </form>
+          ) : !forgot ? (
             <form onSubmit={submit}>
               <div style={{ marginBottom:24 }}>
                 <label style={{ ...lbl, marginBottom:8 }}>Admin Password</label>
@@ -1078,7 +1107,7 @@ function PasswordSection() {
     setLoading(true);
     try {
       await changeAdminPassword(curr, newPw);
-      setMsg({ type:'success', text:'Password changed! Use the new password next time you log in.' });
+      setMsg({ type:'success', text:'Password changed! All other active sessions were signed out automatically.' });
       setCurr(''); setNewPw(''); setConf('');
     } catch(e) { setMsg({ type:'error', text:e.message }); }
     setLoading(false);
@@ -1087,7 +1116,8 @@ function PasswordSection() {
 
   return (
     <div>
-      <PH title="🔐 Security" subtitle="Manage your admin login password" />
+      <PH title="🔐 Security" subtitle="Password, two-factor authentication, and session settings" />
+
       <SCard title="Change Admin Password">
         <div style={{ maxWidth:480 }}>
           <div style={{marginBottom:16}}><F label="Current Password"><input type="password" style={inp} value={curr} onChange={e=>setCurr(e.target.value)} placeholder="Enter current password" /></F></div>
@@ -1097,7 +1127,103 @@ function PasswordSection() {
           <button style={bP} onClick={doChange} disabled={loading}>{loading?'⟳ Updating...':'🔑 Change Password'}</button>
         </div>
       </SCard>
+
+      <TwoFactorCard />
+
+      <SCard title="Session Policy" subtitle="Applies automatically — nothing to configure">
+        <ul style={{ margin:0, paddingLeft:20, color:C.muted, fontSize:'0.84rem', lineHeight:1.9 }}>
+          <li>You're signed out after <strong style={{color:C.text}}>15 minutes</strong> of inactivity.</li>
+          <li>Every session ends after <strong style={{color:C.text}}>8 hours</strong> regardless of activity.</li>
+          <li>Sessions are pinned to the IP address you logged in from — switching networks requires signing in again.</li>
+          <li>You'll get an email alert on every successful login.</li>
+        </ul>
+      </SCard>
     </div>
+  );
+}
+
+function TwoFactorCard() {
+  const [status, setStatus] = useState({ enabled: false });
+  const [setup, setSetupData] = useState(null); // { secret, otpauth, qrDataUrl }
+  const [code, setCode] = useState('');
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [showDisable, setShowDisable] = useState(false);
+
+  const refresh = () => get2FAStatus().then(setStatus);
+  useEffect(() => { refresh(); }, []);
+
+  const startSetup = async () => {
+    setBusy(true); setMsg(null);
+    try { setSetupData(await setup2FA()); }
+    catch (e) { setMsg({ type:'error', text: e.message }); }
+    setBusy(false);
+  };
+
+  const confirmSetup = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      await confirm2FA(code);
+      setMsg({ type:'success', text:'2FA is active on this instance. For it to stay active across restarts and every server instance, add ADMIN_2FA_SECRET=' + setup.secret + ' to your hosting environment variables and redeploy.' });
+      setSetupData(null); setCode('');
+      refresh();
+    } catch (e) { setMsg({ type:'error', text: e.message }); }
+    setBusy(false);
+  };
+
+  const doDisable = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      await disable2FA(pw);
+      setMsg({ type:'success', text:'2FA disabled. If you set ADMIN_2FA_SECRET as an environment variable, also remove it there to fully turn 2FA off.' });
+      setPw(''); setShowDisable(false);
+      refresh();
+    } catch (e) { setMsg({ type:'error', text: e.message }); }
+    setBusy(false);
+  };
+
+  return (
+    <SCard title="Two-Factor Authentication (2FA)" subtitle="Require a 6-digit authenticator code in addition to your password">
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
+        <Badge color={status.enabled ? C.success : C.muted}>{status.enabled ? '✓ Active' : 'Not Enabled'}</Badge>
+      </div>
+
+      {msg && <div style={{ background:msg.type==='error'?C.dangerDim:C.successDim, border:`1px solid ${msg.type==='error'?C.danger:C.success}40`, borderRadius:8, padding:'12px 16px', marginBottom:16, color:msg.type==='error'?C.danger:C.success, fontSize:'0.84rem', lineHeight:1.6 }}>{msg.type==='error'?'⚠️':'✅'} {msg.text}</div>}
+
+      {!status.enabled && !setup && (
+        <button style={bP} onClick={startSetup} disabled={busy}>{busy ? '⟳ Generating...' : '📱 Set Up 2FA'}</button>
+      )}
+
+      {setup && (
+        <div style={{ maxWidth:420 }}>
+          <p style={{ color:C.muted, fontSize:'0.82rem', marginBottom:14 }}>Scan this QR code with Google Authenticator, Authy, or any TOTP app, then enter the 6-digit code it shows.</p>
+          <img src={setup.qrDataUrl} alt="2FA QR code" style={{ width:200, height:200, borderRadius:10, border:`1px solid ${C.border}`, marginBottom:12, background:'#fff', padding:8 }} />
+          <div style={{ fontSize:'0.72rem', color:C.muted, marginBottom:16 }}>Can't scan? Enter this key manually: <code style={{ background:C.surface2, padding:'2px 6px', borderRadius:4, color:C.cyan }}>{setup.secret}</code></div>
+          <F label="6-Digit Code">
+            <input type="text" inputMode="numeric" maxLength={6} style={{ ...inp, letterSpacing:'0.3em', textAlign:'center' }} value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,''))} placeholder="000000" />
+          </F>
+          <div style={{ display:'flex', gap:10, marginTop:14 }}>
+            <button style={bP} onClick={confirmSetup} disabled={busy || code.length!==6}>{busy?'⟳ Confirming...':'✓ Confirm & Enable'}</button>
+            <button style={bG} onClick={()=>{ setSetupData(null); setCode(''); }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {status.enabled && !showDisable && (
+        <button style={bD} onClick={()=>setShowDisable(true)}>Disable 2FA</button>
+      )}
+
+      {status.enabled && showDisable && (
+        <div style={{ maxWidth:420, marginTop:8 }}>
+          <F label="Confirm Current Password"><input type="password" style={inp} value={pw} onChange={e=>setPw(e.target.value)} placeholder="Enter current password" /></F>
+          <div style={{ display:'flex', gap:10, marginTop:14 }}>
+            <button style={bD} onClick={doDisable} disabled={busy || !pw}>{busy?'⟳ Disabling...':'Confirm Disable'}</button>
+            <button style={bG} onClick={()=>{ setShowDisable(false); setPw(''); }}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </SCard>
   );
 }
 
@@ -1384,6 +1510,30 @@ export default function Admin() {
   useEffect(() => {
     if (!loggedIn) { setLoading(false); return; }
     adminGetData().then(d => { setData(d); setLoading(false); }).catch(() => { setLoggedIn(false); setLoading(false); });
+  }, [loggedIn]);
+
+  // Keeps the 15-minute idle session alive during real activity (typing,
+  // clicking, scrolling) that doesn't otherwise hit the API — a throttled
+  // heartbeat, not a keep-alive-forever poll, so genuine inactivity still
+  // times out.
+  useEffect(() => {
+    if (!loggedIn) return;
+    let lastPing = 0;
+    let pending = false;
+    const HEARTBEAT_INTERVAL_MS = 60 * 1000;
+    const onActivity = () => {
+      const now = Date.now();
+      if (pending || now - lastPing < HEARTBEAT_INTERVAL_MS) return;
+      pending = true;
+      adminHeartbeat().then(ok => {
+        pending = false;
+        lastPing = Date.now();
+        if (!ok) { setLoggedIn(false); showToast('Session expired. Please sign in again.', 'error'); }
+      });
+    };
+    const events = ['mousemove', 'keydown', 'click', 'scroll'];
+    events.forEach(ev => window.addEventListener(ev, onActivity, { passive: true }));
+    return () => events.forEach(ev => window.removeEventListener(ev, onActivity));
   }, [loggedIn]);
 
   const handleSave = async (section, sectionData) => {

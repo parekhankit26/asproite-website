@@ -59,7 +59,75 @@ function getPasswordHash() {
 }
 
 function setPasswordHash(hash) {
-  writeAuthFile({ passwordHash: hash, updatedAt: new Date().toISOString() });
+  const existing = readAuthFile() || {};
+  writeAuthFile({
+    ...existing,
+    passwordHash: hash,
+    passwordChangedAt: Date.now(),
+    updatedAt: new Date().toISOString(),
+  });
 }
 
-module.exports = { ensureAdminSeeded, getPasswordHash, setPasswordHash };
+// Timestamp of the last password change, embedded into new session tokens
+// and checked against on every request — a session issued before this
+// timestamp is stale and gets rejected. Best-effort: like the password hash
+// itself, this lives in a local file that isn't reliably shared across
+// instances on this host, so cross-instance invalidation may lag. The
+// reliable, instant, all-instances way to kill every session is still
+// rotating the ADMIN_PASSWORD env var, which changes the token signing key
+// itself.
+function getPasswordChangedAt() {
+  const auth = readAuthFile();
+  return (auth && auth.passwordChangedAt) || 0;
+}
+
+// Active secret — the one actually enforced at login. Only ever set via
+// confirm2FASetup() succeeding, never at generation time (see pending
+// secret below), so simply viewing a QR code can't turn 2FA on by itself.
+function get2FASecret() {
+  const auth = readAuthFile();
+  return (auth && auth.totpSecret) || null;
+}
+
+function set2FASecret(secret) {
+  const existing = readAuthFile() || {};
+  writeAuthFile({ ...existing, totpSecret: secret, updatedAt: new Date().toISOString() });
+}
+
+function clear2FASecret() {
+  const existing = readAuthFile() || {};
+  delete existing.totpSecret;
+  writeAuthFile({ ...existing, updatedAt: new Date().toISOString() });
+}
+
+// Pending secret — generated during enrollment, held here until the admin
+// proves they actually captured it by entering a valid code. Never
+// enforced at login on its own.
+function getPending2FASecret() {
+  const auth = readAuthFile();
+  return (auth && auth.pendingTotpSecret) || null;
+}
+
+function setPending2FASecret(secret) {
+  const existing = readAuthFile() || {};
+  writeAuthFile({ ...existing, pendingTotpSecret: secret, updatedAt: new Date().toISOString() });
+}
+
+function clearPending2FASecret() {
+  const existing = readAuthFile() || {};
+  delete existing.pendingTotpSecret;
+  writeAuthFile({ ...existing, updatedAt: new Date().toISOString() });
+}
+
+module.exports = {
+  ensureAdminSeeded,
+  getPasswordHash,
+  setPasswordHash,
+  getPasswordChangedAt,
+  get2FASecret,
+  set2FASecret,
+  clear2FASecret,
+  getPending2FASecret,
+  setPending2FASecret,
+  clearPending2FASecret,
+};

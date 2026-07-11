@@ -271,6 +271,9 @@ export async function adminSave(section, sectionData) {
   }
 }
 
+// Step 1 of login. If the account has 2FA enabled, resolves with
+// { needs2FA: true } instead of logging in — no session cookie is set
+// until verify2FA() succeeds.
 export async function adminLogin(password) {
   const res = await fetch('/site-api/admin/login', {
     method: 'POST',
@@ -278,15 +281,80 @@ export async function adminLogin(password) {
     credentials: 'include',
     body: JSON.stringify({ password }),
   });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || 'Wrong password');
-  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Wrong password');
+  return body; // { ok: true } or { ok: true, needs2FA: true }
+}
+
+// Step 2 of login when 2FA is enabled — re-sends the password alongside
+// the 6-digit authenticator code (kept stateless server-side, see auth.js).
+export async function adminLoginVerify2FA(password, code) {
+  const res = await fetch('/site-api/admin/login/2fa', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ password, code }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Invalid code');
   return { ok: true };
 }
 
 export async function adminLogout() {
   await fetch('/site-api/admin/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+}
+
+// Pinged on real admin activity to keep the 15-minute idle session alive.
+// Returns false (without throwing) when the session has expired or hit the
+// 8-hour absolute cap, so the caller can prompt for re-login.
+export async function adminHeartbeat() {
+  try {
+    const res = await fetch('/site-api/admin/heartbeat', { method: 'POST', credentials: 'include' });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function get2FAStatus() {
+  try {
+    const res = await fetch('/site-api/admin/2fa/status', { credentials: 'include' });
+    if (!res.ok) return { enabled: false };
+    return await res.json();
+  } catch (e) {
+    return { enabled: false };
+  }
+}
+
+export async function setup2FA() {
+  const res = await fetch('/site-api/admin/2fa/setup', { method: 'POST', credentials: 'include' });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Could not start 2FA setup');
+  return body; // { secret, otpauth, qrDataUrl }
+}
+
+export async function confirm2FA(code) {
+  const res = await fetch('/site-api/admin/2fa/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ code }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Invalid code');
+  return { ok: true };
+}
+
+export async function disable2FA(currentPassword) {
+  const res = await fetch('/site-api/admin/2fa/disable', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ currentPassword }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Could not disable 2FA');
+  return { ok: true };
 }
 
 export async function isLoggedIn() {
@@ -353,10 +421,10 @@ export async function clearAnthropicKey() {
 export async function getConfigStatus() {
   try {
     const res = await fetch('/site-api/admin/config-status', { credentials: 'include' });
-    if (!res.ok) return { githubConfigured: false, aiConfigured: false };
+    if (!res.ok) return { githubConfigured: false, aiConfigured: false, careersEmailConfigured: false, twoFactorEnabled: false };
     return await res.json();
   } catch (e) {
-    return { githubConfigured: false, aiConfigured: false };
+    return { githubConfigured: false, aiConfigured: false, careersEmailConfigured: false, twoFactorEnabled: false };
   }
 }
 export async function adminUpload(file) {

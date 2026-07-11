@@ -52,10 +52,34 @@ async function sendApplication({ fullName, email, phone, linkedin, position, mes
   await getTransporter().sendMail(mail);
 }
 
+async function sendLoginAlert({ ip, time, userAgent }) {
+  if (!isConfigured()) return;
+
+  const to = (process.env.ADMIN_NOTIFY_EMAIL || process.env.SMTP_USER || '').trim();
+  if (!to) return;
+
+  const mail = {
+    from: `"Asproite Admin" <${process.env.SMTP_USER}>`,
+    to,
+    subject: 'Asproite Admin: new login',
+    html: [
+      `<p>A successful admin login was just recorded.</p>`,
+      `<p><strong>Time:</strong> ${escapeHtml(time)}</p>`,
+      `<p><strong>IP address:</strong> ${escapeHtml(ip || 'unknown')}</p>`,
+      `<p><strong>Browser:</strong> ${escapeHtml(userAgent || 'unknown')}</p>`,
+      `<p>If this wasn't you, change the admin password immediately.</p>`,
+    ].join('\n'),
+  };
+
+  // Best-effort — a failed alert email must never block or fail the login
+  // itself.
+  await getTransporter().sendMail(mail).catch(() => {});
+}
+
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-module.exports = { isConfigured, sendApplication };
+module.exports = { isConfigured, sendApplication, sendLoginAlert };

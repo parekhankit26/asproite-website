@@ -67,12 +67,29 @@ const upload = multer({
 });
 
 // ── Admin auth ──────────────────────────────────────────────
+function completeLogin(req, res) {
+  const token = auth.createSession(req.ip);
+  auth.setSessionCookie(res, token);
+  mailer.sendLoginAlert({
+    ip: req.ip,
+    time: new Date().toISOString(),
+    userAgent: req.get('user-agent'),
+  }).catch(() => {});
+  res.json({ ok: true });
+}
+
 app.post('/site-api/admin/login', loginLimiter, (req, res) => {
   const { password } = req.body || {};
   if (!auth.verifyPassword(password)) return res.status(401).json({ error: 'Incorrect password' });
-  const token = auth.createSession();
-  auth.setSessionCookie(res, token);
-  res.json({ ok: true });
+  if (auth.is2FAEnabled()) return res.json({ ok: true, needs2FA: true });
+  completeLogin(req, res);
+});
+
+app.post('/site-api/admin/login/2fa', loginLimiter, (req, res) => {
+  const { password, code } = req.body || {};
+  if (!auth.verifyPassword(password)) return res.status(401).json({ error: 'Incorrect password' });
+  if (!auth.verifyTOTP(code)) return res.status(401).json({ error: 'Invalid or expired code' });
+  completeLogin(req, res);
 });
 
 app.post('/site-api/admin/logout', (req, res) => {
@@ -82,7 +99,14 @@ app.post('/site-api/admin/logout', (req, res) => {
 });
 
 app.get('/site-api/admin/session', (req, res) => {
-  res.json({ loggedIn: auth.isValidSession(req.cookies?.[auth.SESSION_COOKIE]) });
+  res.json({ loggedIn: auth.isValidSession(req.cookies?.[auth.SESSION_COOKIE], req.ip) });
+});
+
+// Pinged by the admin panel on real user activity so the sliding 15-minute
+// idle timeout doesn't fire while someone is actively working but not
+// hitting a save/API endpoint (e.g. typing into a field).
+app.post('/site-api/admin/heartbeat', auth.requireAuth, (req, res) => {
+  res.json({ ok: true });
 });
 
 app.post('/site-api/admin/change-password', auth.requireAuth, (req, res) => {
@@ -92,6 +116,38 @@ app.post('/site-api/admin/change-password', auth.requireAuth, (req, res) => {
     return res.status(400).json({ error: 'New password must be at least 6 characters' });
   }
   auth.setPassword(newPassword);
+  // Invalidates every other session that was issued before this change
+  // (see auth.js pwdAt check) — the current request's own cookie is stale
+  // too, so re-issue a fresh one instead of logging the admin out.
+  const token = auth.createSession(req.ip);
+  auth.setSessionCookie(res, token);
+  res.json({ ok: true });
+});
+
+// ── Two-factor authentication ───────────────────────────────
+app.get('/site-api/admin/2fa/status', auth.requireAuth, (req, res) => {
+  res.json({ enabled: auth.is2FAEnabled() });
+});
+
+app.post('/site-api/admin/2fa/setup', auth.requireAuth, async (req, res) => {
+  try {
+    const { secret, otpauth, qrDataUrl } = await auth.generate2FASetup();
+    res.json({ secret, otpauth, qrDataUrl });
+  } catch (e) {
+    res.status(500).json({ error: 'Could not generate 2FA secret' });
+  }
+});
+
+app.post('/site-api/admin/2fa/confirm', auth.requireAuth, (req, res) => {
+  const { code } = req.body || {};
+  if (!auth.confirm2FASetup(code)) return res.status(400).json({ error: 'Invalid code — check your authenticator app and try again' });
+  res.json({ ok: true });
+});
+
+app.post('/site-api/admin/2fa/disable', auth.requireAuth, (req, res) => {
+  const { currentPassword } = req.body || {};
+  if (!auth.verifyPassword(currentPassword)) return res.status(401).json({ error: 'Current password is incorrect' });
+  auth.disable2FA();
   res.json({ ok: true });
 });
 
@@ -120,6 +176,7 @@ app.get('/site-api/admin/config-status', auth.requireAuth, (req, res) => {
     githubConfigured: content.isGitHubConfigured(),
     aiConfigured: ai.isConfigured(),
     careersEmailConfigured: mailer.isConfigured(),
+    twoFactorEnabled: auth.is2FAEnabled(),
   });
 });
 
