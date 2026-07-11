@@ -1149,19 +1149,16 @@ function SecretForm({ placeholder, onSave, onClear, onDone }) {
 }
 
 function SettingsSection() {
-  const [status, setStatus] = useState({ githubConfigured: false, aiConfigured: false });
+  const [status, setStatus] = useState({ githubConfigured: false, aiConfigured: false, careersEmailConfigured: false });
   const refreshStatus = () => getConfigStatus().then(setStatus);
   useEffect(() => { refreshStatus(); }, []);
-  const { githubConfigured: connected, aiConfigured } = status;
+  const { githubConfigured: connected, aiConfigured, careersEmailConfigured } = status;
 
   const [showGithubForm, setShowGithubForm] = useState(false);
   const [showAiForm, setShowAiForm] = useState(false);
 
   const [web3key, setWeb3key] = useState(() => localStorage.getItem('asproite_web3key') || '');
   const [web3saved, setWeb3saved] = useState(false);
-
-  const [careersWeb3key, setCareersWeb3key] = useState(() => localStorage.getItem('asproite_careers_web3key') || '');
-  const [careersWeb3saved, setCareersWeb3saved] = useState(false);
 
   const bCard = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '28px', marginBottom: 24 };
 
@@ -1173,15 +1170,6 @@ function SettingsSection() {
     } catch(e) {}
     setWeb3saved(true);
     setTimeout(() => setWeb3saved(false), 2500);
-  };
-
-  const saveCareersWeb3Key = async () => {
-    localStorage.setItem('asproite_careers_web3key', careersWeb3key.trim());
-    try {
-      await adminSave('careersWeb3formsKey', careersWeb3key.trim());
-    } catch(e) {}
-    setCareersWeb3saved(true);
-    setTimeout(() => setCareersWeb3saved(false), 2500);
   };
 
   return (
@@ -1270,39 +1258,27 @@ function SettingsSection() {
         )}
       </div>
 
-      {/* ── Careers Application Email Key ── */}
-      <div style={bCard}>
+      {/* ── Careers Application Email ── */}
+      <div style={{ ...bCard, border: careersEmailConfigured ? `1px solid ${C.cyan}50` : `1px solid ${C.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <span style={{ fontSize: '1.4rem' }}>💼</span>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '1rem' }}>Careers Application Email Key</div>
+            <div style={{ fontWeight: 700, fontSize: '1rem' }}>
+              Careers Application Email
+              {careersEmailConfigured && <span style={{ marginLeft: 10, fontSize: '0.75rem', background: C.cyanDim, color: C.cyan, padding: '2px 10px', borderRadius: 20, fontFamily: 'inherit' }}>✓ Active</span>}
+            </div>
             <div style={{ color: C.muted, fontSize: '0.78rem' }}>
-              Job applications go to <strong style={{ color: C.cyan }}>career@asproite.com</strong> via Web3Forms — kept separate from Contact form enquiries
+              Job applications (with resume attachments) email directly to <strong style={{ color: C.cyan }}>career@asproite.com</strong>
             </div>
           </div>
         </div>
-        <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 7, padding: '12px 16px', marginBottom: 16, fontSize: '0.8rem', color: C.muted, lineHeight: 1.65 }}>
-          Get a free key at <a href="https://web3forms.com" target="_blank" rel="noreferrer" style={{ color: C.cyan }}>web3forms.com</a> — enter <strong style={{ color: C.text }}>career@asproite.com</strong> → click "Create Access Key" → paste below → Save.
-        </div>
-        <label style={{ ...lbl }}>Web3Forms Access Key</label>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <input
-            value={careersWeb3key}
-            onChange={e => setCareersWeb3key(e.target.value)}
-            placeholder="e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            style={{ ...inp, flex: 1, border: `1px solid ${careersWeb3key ? C.cyan : C.border}` }}
-          />
-          <button onClick={saveCareersWeb3Key} style={{ ...bP, padding: '11px 22px', whiteSpace: 'nowrap' }}>
-            {careersWeb3saved ? '✓ Saved!' : 'Save Key'}
-          </button>
-        </div>
-        {careersWeb3key ? (
-          <div style={{ marginTop: 10, fontSize: '0.78rem', color: C.success }}>
-            ✓ Key saved. Applications go to career@asproite.com.
+        {careersEmailConfigured ? (
+          <div style={{ padding: '14px 18px', background: 'rgba(0,212,255,0.06)', border: `1px solid ${C.cyan}30`, borderRadius: 8, fontSize: '0.82rem', color: C.muted, lineHeight: 1.6 }}>
+            ✅ Applications, including resume attachments, are emailing successfully to career@asproite.com.
           </div>
         ) : (
-          <div style={{ marginTop: 10, fontSize: '0.78rem', color: C.muted }}>
-            Using the default key already set up for career@asproite.com. Only add one here if you need to change it.
+          <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: '14px 18px', fontSize: '0.82rem', color: C.muted, lineHeight: 1.7 }}>
+            Not configured yet. This sends applications directly through career@asproite.com's own mailbox (SMTP), so an <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>SMTP_HOST</code>, <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>SMTP_USER</code>, and <code style={{ background: C.surface2, padding: '1px 6px', borderRadius: 4, color: C.cyan }}>SMTP_PASS</code> environment variable need to be set on the server (found in your email hosting's SMTP settings) and the app restarted. Until then, candidates see a message asking them to email career@asproite.com directly.
           </div>
         )}
       </div>

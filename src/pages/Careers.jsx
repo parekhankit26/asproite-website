@@ -3,15 +3,6 @@ import { PageHeader, SectionHeader } from '../components/index.jsx';
 import { useScrollReveal } from '../hooks/index.js';
 import { useSiteData } from '../data/SiteDataContext.jsx';
 
-// Careers applications use their own Web3Forms key so they land in
-// career@asproite.com, separate from general Contact page enquiries.
-const CAREERS_WEB3FORMS_FALLBACK = '3f2dc4b4-590b-49c2-9ec3-20fa3d70445f';
-function getWeb3Key(siteData) {
-  return (siteData && siteData.careersWeb3formsKey && siteData.careersWeb3formsKey !== '')
-    ? siteData.careersWeb3formsKey
-    : CAREERS_WEB3FORMS_FALLBACK;
-}
-
 function OrbitCanvas() {
   const ref = useRef(null);
   useEffect(() => {
@@ -47,19 +38,33 @@ function OrbitCanvas() {
   return <canvas ref={ref} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.5 }} />;
 }
 
-const INITIAL_FORM = { fullName: '', email: '', phone: '', linkedin: '', resumeLink: '', message: '' };
+const INITIAL_FORM = { fullName: '', email: '', phone: '', linkedin: '', message: '' };
 
-function ApplicationForm({ job, siteData, onClose }) {
+function ApplicationForm({ job, onClose }) {
   const [form, setForm] = useState(INITIAL_FORM);
+  const [resumeFile, setResumeFile] = useState(null);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [notConfigured, setNotConfigured] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
     if (errors[name]) setErrors(er => ({ ...er, [name]: undefined }));
+  };
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (file && file.size > 5 * 1024 * 1024) {
+      setErrors(er => ({ ...er, resume: 'File must be under 5MB' }));
+      e.target.value = '';
+      setResumeFile(null);
+      return;
+    }
+    setResumeFile(file || null);
+    if (errors.resume) setErrors(er => ({ ...er, resume: undefined }));
   };
 
   const validate = () => {
@@ -77,31 +82,38 @@ function ApplicationForm({ job, siteData, onClose }) {
     setSubmitError('');
 
     const formData = new FormData();
-    formData.append('access_key', getWeb3Key(siteData));
-    formData.append('subject', `Job Application: ${job ? job.title : 'General Application'} — ${form.fullName}`);
-    formData.append('from_name', form.fullName);
-    formData.append('replyto', form.email);
-    formData.append('Full Name', form.fullName);
-    formData.append('Email', form.email);
-    formData.append('Phone', form.phone || 'Not provided');
-    formData.append('Position Applied For', job ? job.title : 'General Application');
-    formData.append('LinkedIn / Portfolio', form.linkedin || 'Not provided');
-    formData.append('Resume / CV Link', form.resumeLink || 'Not provided');
-    formData.append('Cover Letter', form.message || 'Not provided');
-    formData.append('botcheck', '');
+    formData.append('fullName', form.fullName);
+    formData.append('email', form.email);
+    formData.append('phone', form.phone || '');
+    formData.append('linkedin', form.linkedin || '');
+    formData.append('position', job ? job.title : 'General Application');
+    formData.append('message', form.message || '');
+    if (resumeFile) formData.append('resume', resumeFile);
 
     try {
-      const res = await fetch('https://api.web3forms.com/submit', { method: 'POST', body: formData });
+      const res = await fetch('/site-api/careers/apply', { method: 'POST', body: formData });
+      if (res.status === 503) { setNotConfigured(true); setLoading(false); return; }
       const result = await res.json();
-      if (!result.success) throw new Error(result.message || 'Submission failed');
+      if (!res.ok || !result.ok) throw new Error(result.error || 'Submission failed');
       setSubmitted(true);
       setForm(INITIAL_FORM);
+      setResumeFile(null);
     } catch (err) {
-      setSubmitError('Could not submit application. Please email your CV directly to info@asproite.com');
+      setSubmitError('Could not submit application. Please email your CV directly to career@asproite.com');
     } finally {
       setLoading(false);
     }
   };
+
+  if (notConfigured) {
+    return (
+      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+        <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: 1.7 }}>
+          Applications aren't fully set up yet — please email your CV directly to <strong style={{ color: 'var(--cyan)' }}>career@asproite.com</strong> and we'll be in touch.
+        </p>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -140,8 +152,9 @@ function ApplicationForm({ job, siteData, onClose }) {
           <input name="linkedin" type="text" placeholder="linkedin.com/in/..." value={form.linkedin} onChange={handleChange} className="contact-input" />
         </div>
         <div className="full">
-          <label className="contact-label">Resume / CV Link</label>
-          <input name="resumeLink" type="text" placeholder="Google Drive, Dropbox, or LinkedIn link to your CV" value={form.resumeLink} onChange={handleChange} className="contact-input" />
+          <label className="contact-label">Resume / CV (PDF, DOC, or DOCX — max 5MB)</label>
+          <input type="file" accept=".pdf,.doc,.docx" onChange={handleFile} className="contact-input" style={{ padding: '10px 16px' }} />
+          {errors.resume && <span className="err-msg">{errors.resume}</span>}
         </div>
         <div className="full">
           <label className="contact-label">Cover Letter / Message</label>
@@ -219,14 +232,13 @@ function JobCard({ job, expanded, onToggle }) {
 }
 
 function ApplyBox({ job }) {
-  const { data } = useSiteData();
   const [open, setOpen] = useState(false);
   if (!open) {
     return <button onClick={() => setOpen(true)} className="btn-primary" style={{ cursor: 'pointer', border: 'none' }}>Apply for This Role →</button>;
   }
   return (
     <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: 24, marginTop: 8 }}>
-      <ApplicationForm job={job} siteData={data} onClose={() => setOpen(false)} />
+      <ApplicationForm job={job} onClose={() => setOpen(false)} />
     </div>
   );
 }
@@ -363,7 +375,7 @@ export default function Careers() {
               <div>
                 <h3 style={{ fontFamily: 'var(--font-head)', fontSize: '1.2rem', marginBottom: 6 }}>{cp.formTitle || 'Apply Now'}</h3>
                 <p style={{ fontSize: '0.88rem', color: 'var(--muted)', marginBottom: 24 }}>{cp.formSubtitle || "Fill in your details below and we'll be in touch within 5 working days."}</p>
-                <ApplicationForm job={null} siteData={data} onClose={() => setGeneralOpen(false)} />
+                <ApplicationForm job={null} onClose={() => setGeneralOpen(false)} />
               </div>
             )}
           </div>

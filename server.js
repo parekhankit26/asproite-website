@@ -4,12 +4,14 @@ require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
 
 const store = require('./server/store');
 const auth = require('./server/auth');
 const content = require('./server/content');
 const ai = require('./server/ai');
 const secrets = require('./server/secrets');
+const mailer = require('./server/mailer');
 
 store.ensureAdminSeeded();
 
@@ -45,6 +47,23 @@ const chatLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many messages. Please slow down.' },
+});
+
+const applyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many applications submitted. Please try again later.' },
+});
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = /\.(pdf|doc|docx)$/i.test(file.originalname);
+    cb(ok ? null : new Error('Only PDF, DOC, or DOCX files are allowed'), ok);
+  },
 });
 
 // ── Admin auth ──────────────────────────────────────────────
@@ -100,6 +119,7 @@ app.get('/site-api/admin/config-status', auth.requireAuth, (req, res) => {
   res.json({
     githubConfigured: content.isGitHubConfigured(),
     aiConfigured: ai.isConfigured(),
+    careersEmailConfigured: mailer.isConfigured(),
   });
 });
 
@@ -166,6 +186,33 @@ app.post('/site-api/ai-chat', chatLimiter, async (req, res) => {
     if (e.code === 'bad_request') return res.status(400).json({ error: e.message });
     res.status(502).json({ error: 'AI service is temporarily unavailable' });
   }
+});
+
+// ── Careers applications (resume email via SMTP) ────────────
+app.get('/site-api/careers/apply/status', (req, res) => {
+  res.json({ configured: mailer.isConfigured() });
+});
+
+app.post('/site-api/careers/apply', applyLimiter, (req, res) => {
+  upload.single('resume')(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
+
+    const { fullName, email, phone, linkedin, position, message } = req.body || {};
+    if (!fullName || !email) return res.status(400).json({ error: 'Full name and email are required' });
+
+    try {
+      await mailer.sendApplication({
+        fullName, email, phone, linkedin,
+        position: position || 'General Application',
+        message,
+        resumeFile: req.file || null,
+      });
+      res.json({ ok: true });
+    } catch (e) {
+      if (e.code === 'not_configured') return res.status(503).json({ error: 'not_configured' });
+      res.status(502).json({ error: 'Could not send application. Please try again or email us directly.' });
+    }
+  });
 });
 
 // ── Static site ──────────────────────────────────────────────
