@@ -12,9 +12,19 @@ const ai = require('./server/ai');
 const secrets = require('./server/secrets');
 
 store.ensureAdminSeeded();
+const BOOT_ID = require('crypto').randomBytes(4).toString('hex');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+app.use((req, res, next) => {
+  const info = store.getBootInfo();
+  res.setHeader('X-Debug-Boot', BOOT_ID);
+  res.setHeader('X-Debug-Existed-At-Boot', String(info.existedAtBoot));
+  res.setHeader('X-Debug-Env-Len', String(info.envLen));
+  res.setHeader('X-Debug-Generated', String(info.generated));
+  next();
+});
 
 // Hostinger's edge always sets X-Forwarded-For; trust exactly one hop so
 // express-rate-limit can read the real client IP instead of throwing.

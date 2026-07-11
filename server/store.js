@@ -26,8 +26,13 @@ function writeAuthFile(obj) {
 // Seeds the admin password on first boot. Prefers ADMIN_PASSWORD from the
 // environment; otherwise generates a random one-time password and prints it
 // once so the operator can log in and change it.
+let bootInfo = { existedAtBoot: null, envLen: null, generated: null };
+function getBootInfo() { return bootInfo; }
+
 function ensureAdminSeeded() {
   const existing = readAuthFile();
+  bootInfo.existedAtBoot = !!(existing && existing.passwordHash);
+  bootInfo.envLen = (process.env.ADMIN_PASSWORD || '').length;
   if (existing && existing.passwordHash) return;
 
   // Trimmed because some hosting platforms' env var storage silently adds
@@ -41,6 +46,7 @@ function ensureAdminSeeded() {
   }
   const passwordHash = bcrypt.hashSync(initial, 12);
   writeAuthFile({ passwordHash, updatedAt: new Date().toISOString() });
+  bootInfo.generated = generated;
 
   if (generated) {
     console.log('\n================================================================');
@@ -62,4 +68,4 @@ function setPasswordHash(hash) {
   writeAuthFile({ passwordHash: hash, updatedAt: new Date().toISOString() });
 }
 
-module.exports = { ensureAdminSeeded, getPasswordHash, setPasswordHash };
+module.exports = { ensureAdminSeeded, getPasswordHash, setPasswordHash, getBootInfo, AUTH_FILE };
