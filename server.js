@@ -96,25 +96,6 @@ app.post('/site-api/content', auth.requireAuth, async (req, res) => {
   res.json({ ok: true, github: githubResult });
 });
 
-// TEMPORARY diagnostic — remove after investigation. Never returns the
-// actual value, just length/equality info against a candidate.
-app.post('/site-api/admin/debug-env', (req, res) => {
-  const raw = process.env.ADMIN_PASSWORD || '';
-  const candidate = String(req.body?.candidate || '');
-  const maxLen = Math.max(raw.length, candidate.length);
-  const diffPositions = [];
-  for (let i = 0; i < maxLen; i++) {
-    if (raw[i] !== candidate[i]) diffPositions.push(i);
-  }
-  res.json({
-    rawLength: raw.length,
-    trimmedLength: raw.trim().length,
-    candidateLength: candidate.length,
-    equalsCandidateRaw: raw === candidate,
-    diffPositions,
-  });
-});
-
 app.get('/site-api/admin/config-status', auth.requireAuth, (req, res) => {
   res.json({
     githubConfigured: content.isGitHubConfigured(),
