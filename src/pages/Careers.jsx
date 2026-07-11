@@ -260,6 +260,25 @@ export default function Careers() {
         .apply-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .apply-form-grid .full { grid-column: 1 / -1; }
         .perks-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+
+        /* Form field styles — same pattern as the Contact page, scoped
+           here too since page-level <style> tags aren't shared. */
+        .contact-label {
+          display: block; font-size: 0.72rem; font-weight: 600;
+          letter-spacing: 0.1em; text-transform: uppercase;
+          color: var(--muted); margin-bottom: 7px;
+        }
+        .contact-input {
+          width: 100%; display: block;
+          background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+          padding: 13px 16px; color: var(--text);
+          font-family: var(--font-body); font-size: 0.9rem;
+          outline: none; transition: border-color 0.2s; box-sizing: border-box;
+        }
+        .contact-input:focus { border-color: var(--cyan); }
+        .contact-input.err { border-color: #ff4757; }
+        .err-msg { font-size: 0.73rem; color: #ff4757; margin-top: 4px; display: block; }
+
         @media (max-width: 768px) {
           .apply-form-grid { grid-template-columns: 1fr; }
           .apply-form-grid .full { grid-column: 1; }
