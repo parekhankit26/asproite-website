@@ -100,7 +100,7 @@ export default function AsproiteAI() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/ai-chat', {
+      const res = await fetch('/site-api/ai-chat', {
         method:'POST',
         headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify({ messages: newMessages.slice(-10) }), // keep last 10 for context

@@ -231,7 +231,7 @@ export async function adminSave(section, sectionData) {
   } catch(e) {}
 
   try {
-    const res = await fetch('/api/content', {
+    const res = await fetch('/site-api/content', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -248,7 +248,7 @@ export async function adminSave(section, sectionData) {
 }
 
 export async function adminLogin(password) {
-  const res = await fetch('/api/admin/login', {
+  const res = await fetch('/site-api/admin/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -262,12 +262,12 @@ export async function adminLogin(password) {
 }
 
 export async function adminLogout() {
-  await fetch('/api/admin/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+  await fetch('/site-api/admin/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
 }
 
 export async function isLoggedIn() {
   try {
-    const res = await fetch('/api/admin/session', { credentials: 'include' });
+    const res = await fetch('/site-api/admin/session', { credentials: 'include' });
     if (!res.ok) return false;
     const body = await res.json();
     return !!body.loggedIn;
@@ -277,7 +277,7 @@ export async function isLoggedIn() {
 }
 
 export async function changeAdminPassword(currentPw, newPw) {
-  const res = await fetch('/api/admin/change-password', {
+  const res = await fetch('/site-api/admin/change-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -292,7 +292,7 @@ export async function changeAdminPassword(currentPw, newPw) {
 // and storage. The value is sent once, over the authenticated session, and
 // never returned — only a configured/not-configured status comes back.
 export async function setGitHubToken(token) {
-  const res = await fetch('/api/admin/github-token', {
+  const res = await fetch('/site-api/admin/github-token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -304,11 +304,11 @@ export async function setGitHubToken(token) {
 }
 
 export async function clearGitHubToken() {
-  await fetch('/api/admin/github-token/clear', { method: 'POST', credentials: 'include' }).catch(() => {});
+  await fetch('/site-api/admin/github-token/clear', { method: 'POST', credentials: 'include' }).catch(() => {});
 }
 
 export async function setAnthropicKey(key) {
-  const res = await fetch('/api/admin/anthropic-key', {
+  const res = await fetch('/site-api/admin/anthropic-key', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
@@ -320,7 +320,7 @@ export async function setAnthropicKey(key) {
 }
 
 export async function clearAnthropicKey() {
-  await fetch('/api/admin/anthropic-key/clear', { method: 'POST', credentials: 'include' }).catch(() => {});
+  await fetch('/site-api/admin/anthropic-key/clear', { method: 'POST', credentials: 'include' }).catch(() => {});
 }
 
 // Reports whether the server currently has GitHub sync / AI chat
@@ -328,7 +328,7 @@ export async function clearAnthropicKey() {
 // read-only status in Admin, never returns the secrets themselves.
 export async function getConfigStatus() {
   try {
-    const res = await fetch('/api/admin/config-status', { credentials: 'include' });
+    const res = await fetch('/site-api/admin/config-status', { credentials: 'include' });
     if (!res.ok) return { githubConfigured: false, aiConfigured: false };
     return await res.json();
   } catch (e) {

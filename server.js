@@ -44,7 +44,7 @@ const chatLimiter = rateLimit({
 });
 
 // ── Admin auth ──────────────────────────────────────────────
-app.post('/api/admin/login', loginLimiter, (req, res) => {
+app.post('/site-api/admin/login', loginLimiter, (req, res) => {
   const { password } = req.body || {};
   if (!auth.verifyPassword(password)) return res.status(401).json({ error: 'Incorrect password' });
   const token = auth.createSession();
@@ -52,17 +52,17 @@ app.post('/api/admin/login', loginLimiter, (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/admin/logout', (req, res) => {
+app.post('/site-api/admin/logout', (req, res) => {
   auth.destroySession(req.cookies?.[auth.SESSION_COOKIE]);
   auth.clearSessionCookie(res);
   res.json({ ok: true });
 });
 
-app.get('/api/admin/session', (req, res) => {
+app.get('/site-api/admin/session', (req, res) => {
   res.json({ loggedIn: auth.isValidSession(req.cookies?.[auth.SESSION_COOKIE]) });
 });
 
-app.post('/api/admin/change-password', auth.requireAuth, (req, res) => {
+app.post('/site-api/admin/change-password', auth.requireAuth, (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   if (!auth.verifyPassword(currentPassword)) return res.status(401).json({ error: 'Current password is incorrect' });
   if (!newPassword || String(newPassword).length < 6) {
@@ -73,13 +73,13 @@ app.post('/api/admin/change-password', auth.requireAuth, (req, res) => {
 });
 
 // ── Content (site data) ─────────────────────────────────────
-app.get('/api/content', (req, res) => {
+app.get('/site-api/content', (req, res) => {
   const data = content.readLocal();
   if (!data) return res.status(404).json({ error: 'No content found' });
   res.json(data);
 });
 
-app.post('/api/content', auth.requireAuth, async (req, res) => {
+app.post('/site-api/content', auth.requireAuth, async (req, res) => {
   const { section, sectionData } = req.body || {};
   if (!section || typeof sectionData === 'undefined') {
     return res.status(400).json({ error: 'Missing section or sectionData' });
@@ -92,7 +92,7 @@ app.post('/api/content', auth.requireAuth, async (req, res) => {
   res.json({ ok: true, github: githubResult });
 });
 
-app.get('/api/admin/config-status', auth.requireAuth, (req, res) => {
+app.get('/site-api/admin/config-status', auth.requireAuth, (req, res) => {
   res.json({
     githubConfigured: content.isGitHubConfigured(),
     aiConfigured: ai.isConfigured(),
@@ -103,7 +103,7 @@ app.get('/api/admin/config-status', auth.requireAuth, (req, res) => {
 // Validated against the real API before being stored, then kept
 // server-side only — the browser never sees the value again, just a
 // configured/not-configured status.
-app.post('/api/admin/github-token', auth.requireAuth, async (req, res) => {
+app.post('/site-api/admin/github-token', auth.requireAuth, async (req, res) => {
   const { token } = req.body || {};
   if (!token || typeof token !== 'string') return res.status(400).json({ error: 'Token required' });
   try {
@@ -123,12 +123,12 @@ app.post('/api/admin/github-token', auth.requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/admin/github-token/clear', auth.requireAuth, (req, res) => {
+app.post('/site-api/admin/github-token/clear', auth.requireAuth, (req, res) => {
   secrets.clearGitHubToken();
   res.json({ ok: true });
 });
 
-app.post('/api/admin/anthropic-key', auth.requireAuth, async (req, res) => {
+app.post('/site-api/admin/anthropic-key', auth.requireAuth, async (req, res) => {
   const { key } = req.body || {};
   if (!key || typeof key !== 'string') return res.status(400).json({ error: 'Key required' });
   try {
@@ -143,17 +143,17 @@ app.post('/api/admin/anthropic-key', auth.requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-app.post('/api/admin/anthropic-key/clear', auth.requireAuth, (req, res) => {
+app.post('/site-api/admin/anthropic-key/clear', auth.requireAuth, (req, res) => {
   secrets.clearAnthropicKey();
   res.json({ ok: true });
 });
 
 // ── AI chat proxy ───────────────────────────────────────────
-app.get('/api/ai-chat/status', (req, res) => {
+app.get('/site-api/ai-chat/status', (req, res) => {
   res.json({ configured: ai.isConfigured() });
 });
 
-app.post('/api/ai-chat', chatLimiter, async (req, res) => {
+app.post('/site-api/ai-chat', chatLimiter, async (req, res) => {
   try {
     const reply = await ai.chat(req.body?.messages);
     res.json({ reply });
