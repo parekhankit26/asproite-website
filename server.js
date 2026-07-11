@@ -16,6 +16,10 @@ store.ensureAdminSeeded();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Hostinger's edge always sets X-Forwarded-For; trust exactly one hop so
+// express-rate-limit can read the real client IP instead of throwing.
+app.set('trust proxy', 1);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
