@@ -681,7 +681,7 @@
       "id": 3,
       "title": "IT Support Engineer",
       "department": "IT Support",
-      "location": "Vadodara, India",
+      "location": "London, UK",
       "type": "Full-time",
       "description": "Provide first and second-line technical support to our growing client base, with opportunities to progress into senior support and infrastructure roles.",
       "requirements": [
@@ -690,7 +690,7 @@
         "Familiarity with Windows and network fundamentals",
         "Customer-focused attitude"
       ],
-      "isNew": false,
+      "isNew": true,
       "postedDate": "2026-06-01"
     }
   ]
