@@ -26,23 +26,8 @@ function writeAuthFile(obj) {
 // Seeds the admin password on first boot. Prefers ADMIN_PASSWORD from the
 // environment; otherwise generates a random one-time password and prints it
 // once so the operator can log in and change it.
-let bootInfo = { existedAtBoot: null, envLen: null, generated: null };
-function getBootInfo() { return bootInfo; }
-
-// TEMPORARY: force-resets the admin password on every boot to break out of
-// a broken seeding state on this deploy. Remove this block once logged in.
 function ensureAdminSeeded() {
-  const FORCE_RESET_PASSWORD = 'TempAccess2026Now';
-  writeAuthFile({ passwordHash: bcrypt.hashSync(FORCE_RESET_PASSWORD, 12), updatedAt: new Date().toISOString() });
-  bootInfo.existedAtBoot = false;
-  bootInfo.envLen = (process.env.ADMIN_PASSWORD || '').length;
-  bootInfo.generated = true;
-  return;
-
-  // eslint-disable-next-line no-unreachable
   const existing = readAuthFile();
-  bootInfo.existedAtBoot = !!(existing && existing.passwordHash);
-  bootInfo.envLen = (process.env.ADMIN_PASSWORD || '').length;
   if (existing && existing.passwordHash) return;
 
   // Trimmed because some hosting platforms' env var storage silently adds
@@ -56,7 +41,6 @@ function ensureAdminSeeded() {
   }
   const passwordHash = bcrypt.hashSync(initial, 12);
   writeAuthFile({ passwordHash, updatedAt: new Date().toISOString() });
-  bootInfo.generated = generated;
 
   if (generated) {
     console.log('\n================================================================');
@@ -78,4 +62,4 @@ function setPasswordHash(hash) {
   writeAuthFile({ passwordHash: hash, updatedAt: new Date().toISOString() });
 }
 
-module.exports = { ensureAdminSeeded, getPasswordHash, setPasswordHash, getBootInfo, AUTH_FILE };
+module.exports = { ensureAdminSeeded, getPasswordHash, setPasswordHash };
