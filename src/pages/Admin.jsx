@@ -1160,6 +1160,9 @@ function SettingsSection() {
   const [web3key, setWeb3key] = useState(() => localStorage.getItem('asproite_web3key') || '');
   const [web3saved, setWeb3saved] = useState(false);
 
+  const [careersWeb3key, setCareersWeb3key] = useState(() => localStorage.getItem('asproite_careers_web3key') || '');
+  const [careersWeb3saved, setCareersWeb3saved] = useState(false);
+
   const bCard = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '28px', marginBottom: 24 };
 
   const saveWeb3Key = async () => {
@@ -1170,6 +1173,15 @@ function SettingsSection() {
     } catch(e) {}
     setWeb3saved(true);
     setTimeout(() => setWeb3saved(false), 2500);
+  };
+
+  const saveCareersWeb3Key = async () => {
+    localStorage.setItem('asproite_careers_web3key', careersWeb3key.trim());
+    try {
+      await adminSave('careersWeb3formsKey', careersWeb3key.trim());
+    } catch(e) {}
+    setCareersWeb3saved(true);
+    setTimeout(() => setCareersWeb3saved(false), 2500);
   };
 
   return (
@@ -1254,6 +1266,43 @@ function SettingsSection() {
         {web3key && (
           <div style={{ marginTop: 10, fontSize: '0.78rem', color: C.success }}>
             ✓ Key saved. Contact form emails are active.
+          </div>
+        )}
+      </div>
+
+      {/* ── Careers Application Email Key ── */}
+      <div style={bCard}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <span style={{ fontSize: '1.4rem' }}>💼</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1rem' }}>Careers Application Email Key</div>
+            <div style={{ color: C.muted, fontSize: '0.78rem' }}>
+              Job applications go to <strong style={{ color: C.cyan }}>career@asproite.com</strong> via Web3Forms — kept separate from Contact form enquiries
+            </div>
+          </div>
+        </div>
+        <div style={{ background: C.bg, border: `1px solid ${C.border}`, borderRadius: 7, padding: '12px 16px', marginBottom: 16, fontSize: '0.8rem', color: C.muted, lineHeight: 1.65 }}>
+          Get a free key at <a href="https://web3forms.com" target="_blank" rel="noreferrer" style={{ color: C.cyan }}>web3forms.com</a> — enter <strong style={{ color: C.text }}>career@asproite.com</strong> → click "Create Access Key" → paste below → Save.
+        </div>
+        <label style={{ ...lbl }}>Web3Forms Access Key</label>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <input
+            value={careersWeb3key}
+            onChange={e => setCareersWeb3key(e.target.value)}
+            placeholder="e.g. xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            style={{ ...inp, flex: 1, border: `1px solid ${careersWeb3key ? C.cyan : C.border}` }}
+          />
+          <button onClick={saveCareersWeb3Key} style={{ ...bP, padding: '11px 22px', whiteSpace: 'nowrap' }}>
+            {careersWeb3saved ? '✓ Saved!' : 'Save Key'}
+          </button>
+        </div>
+        {careersWeb3key ? (
+          <div style={{ marginTop: 10, fontSize: '0.78rem', color: C.success }}>
+            ✓ Key saved. Applications go to career@asproite.com.
+          </div>
+        ) : (
+          <div style={{ marginTop: 10, fontSize: '0.78rem', color: C.muted }}>
+            Using the default key already set up for career@asproite.com. Only add one here if you need to change it.
           </div>
         )}
       </div>

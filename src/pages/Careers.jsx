@@ -3,12 +3,13 @@ import { PageHeader, SectionHeader } from '../components/index.jsx';
 import { useScrollReveal } from '../hooks/index.js';
 import { useSiteData } from '../data/SiteDataContext.jsx';
 
-// Web3Forms key — same priority order used on the Contact page
-const WEB3FORMS_FALLBACK = 'a7e6530d-9477-40ec-b325-1a8c1b77d24d';
+// Careers applications use their own Web3Forms key so they land in
+// career@asproite.com, separate from general Contact page enquiries.
+const CAREERS_WEB3FORMS_FALLBACK = '3f2dc4b4-590b-49c2-9ec3-20fa3d70445f';
 function getWeb3Key(siteData) {
-  return (siteData && siteData.web3formsKey && siteData.web3formsKey !== '')
-    ? siteData.web3formsKey
-    : (localStorage.getItem('asproite_web3key') || WEB3FORMS_FALLBACK);
+  return (siteData && siteData.careersWeb3formsKey && siteData.careersWeb3formsKey !== '')
+    ? siteData.careersWeb3formsKey
+    : CAREERS_WEB3FORMS_FALLBACK;
 }
 
 function OrbitCanvas() {
@@ -46,11 +47,10 @@ function OrbitCanvas() {
   return <canvas ref={ref} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.5 }} />;
 }
 
-const INITIAL_FORM = { fullName: '', email: '', phone: '', linkedin: '', message: '' };
+const INITIAL_FORM = { fullName: '', email: '', phone: '', linkedin: '', resumeLink: '', message: '' };
 
 function ApplicationForm({ job, siteData, onClose }) {
   const [form, setForm] = useState(INITIAL_FORM);
-  const [resumeFile, setResumeFile] = useState(null);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -60,16 +60,6 @@ function ApplicationForm({ job, siteData, onClose }) {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
     if (errors[name]) setErrors(er => ({ ...er, [name]: undefined }));
-  };
-
-  const handleFile = (e) => {
-    const file = e.target.files[0];
-    if (file && file.size > 5 * 1024 * 1024) {
-      setErrors(er => ({ ...er, resume: 'File must be under 5MB' }));
-      return;
-    }
-    setResumeFile(file || null);
-    if (errors.resume) setErrors(er => ({ ...er, resume: undefined }));
   };
 
   const validate = () => {
@@ -96,9 +86,9 @@ function ApplicationForm({ job, siteData, onClose }) {
     formData.append('Phone', form.phone || 'Not provided');
     formData.append('Position Applied For', job ? job.title : 'General Application');
     formData.append('LinkedIn / Portfolio', form.linkedin || 'Not provided');
+    formData.append('Resume / CV Link', form.resumeLink || 'Not provided');
     formData.append('Cover Letter', form.message || 'Not provided');
     formData.append('botcheck', '');
-    if (resumeFile) formData.append('attachment', resumeFile);
 
     try {
       const res = await fetch('https://api.web3forms.com/submit', { method: 'POST', body: formData });
@@ -106,7 +96,6 @@ function ApplicationForm({ job, siteData, onClose }) {
       if (!result.success) throw new Error(result.message || 'Submission failed');
       setSubmitted(true);
       setForm(INITIAL_FORM);
-      setResumeFile(null);
     } catch (err) {
       setSubmitError('Could not submit application. Please email your CV directly to info@asproite.com');
     } finally {
@@ -151,9 +140,8 @@ function ApplicationForm({ job, siteData, onClose }) {
           <input name="linkedin" type="text" placeholder="linkedin.com/in/..." value={form.linkedin} onChange={handleChange} className="contact-input" />
         </div>
         <div className="full">
-          <label className="contact-label">Resume / CV (PDF, max 5MB)</label>
-          <input type="file" accept=".pdf,.doc,.docx" onChange={handleFile} className="contact-input" style={{ padding: '10px 16px' }} />
-          {errors.resume && <span className="err-msg">{errors.resume}</span>}
+          <label className="contact-label">Resume / CV Link</label>
+          <input name="resumeLink" type="text" placeholder="Google Drive, Dropbox, or LinkedIn link to your CV" value={form.resumeLink} onChange={handleChange} className="contact-input" />
         </div>
         <div className="full">
           <label className="contact-label">Cover Letter / Message</label>
