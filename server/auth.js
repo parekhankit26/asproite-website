@@ -56,9 +56,19 @@ function requireAuth(req, res, next) {
 }
 
 function verifyPassword(password) {
+  const attempt = String(password || '');
+
   const hash = store.getPasswordHash();
-  if (!hash) return false;
-  return bcrypt.compareSync(String(password || ''), hash);
+  if (hash && bcrypt.compareSync(attempt, hash)) return true;
+
+  // Fallback: also accept ADMIN_PASSWORD directly from the environment.
+  // Some hosts don't reliably persist the local password-hash file across
+  // restarts/redeploys, which would otherwise lock the admin out even
+  // though they set a perfectly good env var.
+  const envPassword = (process.env.ADMIN_PASSWORD || '').trim();
+  if (envPassword && attempt === envPassword) return true;
+
+  return false;
 }
 
 function setPassword(newPassword) {
