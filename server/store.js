@@ -28,12 +28,12 @@ function writeAuthFile(obj) {
 // once so the operator can log in and change it.
 function ensureAdminSeeded() {
   const existing = readAuthFile();
-  console.log('[DEBUG] AUTH_FILE path:', AUTH_FILE);
-  console.log('[DEBUG] existing file found:', !!existing, 'has hash:', !!(existing && existing.passwordHash));
-  console.log('[DEBUG] ADMIN_PASSWORD env set:', !!process.env.ADMIN_PASSWORD, 'length:', (process.env.ADMIN_PASSWORD || '').length);
   if (existing && existing.passwordHash) return;
 
-  let initial = process.env.ADMIN_PASSWORD;
+  // Trimmed because some hosting platforms' env var storage silently adds
+  // a trailing newline/whitespace to values, which would otherwise bake
+  // an unguessable character into the seeded hash.
+  let initial = (process.env.ADMIN_PASSWORD || '').trim() || undefined;
   let generated = false;
   if (!initial) {
     initial = crypto.randomBytes(9).toString('base64url');
