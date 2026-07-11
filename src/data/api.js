@@ -81,6 +81,25 @@ function getDefaults() {
       formTitle:'Send Us a Message', formSubtitle:"Fill in the form below and we'll get back to you within 24 hours.",
       formSubmitText:'Send Message →', faqSectionLabel:'FAQs', faqSectionTitle:'Common', faqSectionTitleAccent:'Questions',
     },
+    careersPage: {
+      pageTitle:'Join Our', pageTitleAccent:'Team',
+      subtitle:'Help us deliver exceptional IT solutions. Explore our open roles and grow your career with Asproite.',
+      sectionLabel:'Open Positions', sectionTitle:'Current', sectionTitleAccent:'Openings',
+      noOpeningsText:"We don't have any open positions right now, but we're always happy to hear from talented people. Send us your CV and we'll keep you in mind for future roles.",
+      whySectionLabel:'Why Asproite', whySectionTitle:'Why Work', whySectionTitleAccent:'With Us',
+      perks:[
+        {id:1,icon:'💰',title:'Competitive Salary',body:'Market-leading pay with regular reviews.'},
+        {id:2,icon:'🏥',title:'Health Cover',body:'Comprehensive private healthcare for you and your family.'},
+        {id:3,icon:'🏡',title:'Flexible & Remote',body:'Hybrid and remote working options across all roles.'},
+        {id:4,icon:'📚',title:'Learning Budget',body:'Annual budget for courses, certifications, and conferences.'},
+        {id:5,icon:'🌴',title:'Generous Leave',body:'25+ days holiday plus bank holidays.'},
+        {id:6,icon:'🚀',title:'Career Growth',body:'Clear progression paths and regular promotions.'},
+      ],
+      formTitle:'Apply Now', formSubtitle:"Fill in your details below and we'll be in touch within 5 working days.",
+      formSubmitText:'Submit Application →',
+      ctaLabel:'Get In Touch', ctaTitle:"Don't See a Role", ctaTitleAccent:'That Fits?',
+      ctaSubtitle:"We're always on the lookout for great people. Send us a speculative application.",
+    },
     footer: {
       description:'Asproite Cloud and Consultancy — your end-to-end IT partner for over 25 years.',
       servicesHeading:'Services', companyHeading:'Company',
@@ -109,6 +128,11 @@ function getDefaults() {
     timeline:[{id:1,year:'1999',title:'Asproite is Born',body:'Founded in London.'},{id:2,year:'2005',title:'Software & Web Division',body:'Launched dedicated divisions.'},{id:3,year:'2012',title:'India Office Opens',body:'Opened our Vadodara office.'},{id:4,year:'2018',title:'Cloud & AI Services',body:'Became certified AWS and Azure partners.'},{id:5,year:'2024',title:'Hardware Decommissioning',body:'Launched WEEE-compliant hardware decommissioning.'}],
     effects:{neuralCanvas:true,customCursor:true,scrollReveal:true,marquee:true,orbitRings:true},
     web3formsKey: '',
+    careers:[
+      {id:1,title:'Senior Full-Stack Developer',department:'Engineering',location:'London, UK',type:'Full-time',description:'We\'re looking for an experienced full-stack developer to join our engineering team, building scalable web applications for clients across the UK.',requirements:['5+ years of full-stack development experience','Strong knowledge of React and Node.js','Experience with cloud platforms (AWS/Azure)','Excellent communication skills'],isNew:true,postedDate:'2026-07-01'},
+      {id:2,title:'Cloud Solutions Architect',department:'Cloud Services',location:'Remote (UK)',type:'Full-time',description:'Design and implement cloud migration strategies for enterprise clients, working closely with our infrastructure and support teams.',requirements:['AWS or Azure certification','7+ years in cloud architecture','Experience leading migration projects','Strong client-facing communication'],isNew:false,postedDate:'2026-06-15'},
+      {id:3,title:'IT Support Engineer',department:'IT Support',location:'Vadodara, India',type:'Full-time',description:'Provide first and second-line technical support to our growing client base, with opportunities to progress into senior support and infrastructure roles.',requirements:['2+ years in IT support or helpdesk','Strong troubleshooting skills','Familiarity with Windows and network fundamentals','Customer-focused attitude'],isNew:false,postedDate:'2026-06-01'},
+    ],
   };
 }
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSiteData } from '../data/SiteDataContext.jsx';
 
-const PAGE_MAP = { 'About Us': '/about', 'Portfolio': '/portfolio', 'Careers': '/contact', 'Contact Us': '/contact', 'Services': '/services', 'Home': '/' };
+const PAGE_MAP = { 'About Us': '/about', 'Portfolio': '/portfolio', 'Careers': '/careers', 'Contact Us': '/contact', 'Services': '/services', 'Home': '/' };
 
 export default function Footer() {
   const { data } = useSiteData();

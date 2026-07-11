@@ -26,6 +26,7 @@ export default function Navbar() {
     { to: '/about', label: 'About' },
     { to: '/services', label: 'Services' },
     { to: '/portfolio', label: 'Portfolio' },
+    { to: '/careers', label: 'Careers' },
     { to: '/contact', label: 'Contact' },
     { to: '/it-health-check', label: 'IT Health Check', highlight: true },
   ];
@@ -50,7 +51,7 @@ export default function Navbar() {
 
         {/* Desktop Nav */}
         <ul style={{ display: 'flex', gap: 34, listStyle: 'none', alignItems: 'center' }} className="nav-desktop">
-          {links.slice(0, 4).map(({ to, label }) => (
+          {links.slice(0, 5).map(({ to, label }) => (
             <li key={to}>
               <Link to={to} style={{
                 fontSize: '0.78rem', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase',

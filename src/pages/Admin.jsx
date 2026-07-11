@@ -24,12 +24,14 @@ const SECTIONS = [
   { id:'homePage',     label:'Home Page',      icon:'🏠', desc:'Hero, about section, CTA' },
   { id:'servicesPage', label:'Services Page',  icon:'⚙️', desc:'Headings, process, why us' },
   { id:'portfolioPage',label:'Portfolio Page', icon:'🖼️', desc:'Headings, stats bar, CTA' },
+  { id:'careersPage',  label:'Careers Page',   icon:'💼', desc:'Header, perks, CTA' },
   { id:'aboutPage',    label:'About Page',     icon:'📖', desc:'Mission, values, sections' },
   { id:'contactPage',  label:'Contact Page',   icon:'📞', desc:'Headings, info cards, form' },
   { id:'footer',       label:'Footer',         icon:'📌', desc:'Links, newsletter, socials' },
   { id:'siteInfo',     label:'Site Info',      icon:'🏢', desc:'Logo, contact, addresses' },
   { id:'services',     label:'Services (Items)',icon:'🔧',desc:'Add/edit/remove services' },
   { id:'portfolio',    label:'Portfolio (Items)',icon:'📂',desc:'Projects & case studies' },
+  { id:'careers',      label:'Careers (Jobs)', icon:'💼', desc:'Add/edit/remove job listings' },
   { id:'team',         label:'Team',           icon:'👥', desc:'Team members & bios' },
   { id:'testimonials', label:'Testimonials',   icon:'💬', desc:'Client quotes' },
   { id:'faqs',         label:'FAQs',           icon:'❓', desc:'Questions & answers' },
@@ -439,6 +441,75 @@ function PortfolioPageSection({ data, onSave, saving }) {
   );
 }
 
+// ── CAREERS PAGE ──────────────────────────────────────────
+function CareersPageSection({ data, onSave, saving }) {
+  const [f, setF] = useState({ ...data, perks:[...(data?.perks||[])] });
+  const s = (k,v) => setF(p=>({...p,[k]:v}));
+  const sp = (i,k,v) => { const a=[...f.perks]; a[i]={...a[i],[k]:v}; s('perks',a); };
+  const addPerk = () => s('perks',[...f.perks,{id:Date.now(),icon:'✨',title:'New Perk',body:''}]);
+  const removePerk = (i) => s('perks', f.perks.filter((_,x)=>x!==i));
+  return (
+    <div>
+      <PH title="💼 Careers Page" subtitle="Page header, perks, no-openings text, CTA" onSave={()=>onSave('careersPage',f)} saving={saving} />
+
+      <SCard title="Page Header">
+        <FG cols={2}>
+          <F label="Page Title"><input style={inp} value={f.pageTitle||''} onChange={e=>s('pageTitle',e.target.value)} placeholder="Join Our" /></F>
+          <F label="Page Title Accent (cyan)"><input style={inp} value={f.pageTitleAccent||''} onChange={e=>s('pageTitleAccent',e.target.value)} placeholder="Team" /></F>
+        </FG>
+        <F label="Page Subtitle"><textarea style={txa} value={f.subtitle||''} onChange={e=>s('subtitle',e.target.value)} /></F>
+      </SCard>
+
+      <SCard title="Open Positions Section Heading">
+        <FG cols={3}>
+          <F label="Section Label"><input style={inp} value={f.sectionLabel||''} onChange={e=>s('sectionLabel',e.target.value)} placeholder="Open Positions" /></F>
+          <F label="Title"><input style={inp} value={f.sectionTitle||''} onChange={e=>s('sectionTitle',e.target.value)} placeholder="Current" /></F>
+          <F label="Title Accent (cyan)"><input style={inp} value={f.sectionTitleAccent||''} onChange={e=>s('sectionTitleAccent',e.target.value)} placeholder="Openings" /></F>
+        </FG>
+        <F label="No Openings Text (shown when there are 0 jobs)"><textarea style={txa} value={f.noOpeningsText||''} onChange={e=>s('noOpeningsText',e.target.value)} /></F>
+      </SCard>
+
+      <SCard title="Why Work With Us — Perks" subtitle="Shown as a grid of cards below the job listings">
+        <FG cols={3}>
+          <F label="Section Label"><input style={inp} value={f.whySectionLabel||''} onChange={e=>s('whySectionLabel',e.target.value)} placeholder="Why Asproite" /></F>
+          <F label="Title"><input style={inp} value={f.whySectionTitle||''} onChange={e=>s('whySectionTitle',e.target.value)} placeholder="Why Work" /></F>
+          <F label="Title Accent (cyan)"><input style={inp} value={f.whySectionTitleAccent||''} onChange={e=>s('whySectionTitleAccent',e.target.value)} placeholder="With Us" /></F>
+        </FG>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginTop:14 }}>
+          {f.perks.map((p,i) => (
+            <div key={p.id||i} style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:10, padding:14 }}>
+              <FG cols={3}>
+                <F label="Icon"><input style={inp} value={p.icon||''} onChange={e=>sp(i,'icon',e.target.value)} /></F>
+                <F label="Title"><input style={inp} value={p.title||''} onChange={e=>sp(i,'title',e.target.value)} /></F>
+                <div style={{ display:'flex', alignItems:'flex-end' }}><button style={bD} onClick={()=>removePerk(i)}>🗑️</button></div>
+              </FG>
+              <F label="Description"><input style={inp} value={p.body||''} onChange={e=>sp(i,'body',e.target.value)} /></F>
+            </div>
+          ))}
+        </div>
+        <button style={{...bG,marginTop:12}} onClick={addPerk}>+ Add Perk</button>
+      </SCard>
+
+      <SCard title="Application Form Text">
+        <FG cols={2}>
+          <F label="Form Title"><input style={inp} value={f.formTitle||''} onChange={e=>s('formTitle',e.target.value)} placeholder="Apply Now" /></F>
+          <F label="Submit Button Text"><input style={inp} value={f.formSubmitText||''} onChange={e=>s('formSubmitText',e.target.value)} placeholder="Submit Application →" /></F>
+        </FG>
+        <F label="Form Subtitle"><input style={inp} value={f.formSubtitle||''} onChange={e=>s('formSubtitle',e.target.value)} /></F>
+      </SCard>
+
+      <SCard title="Speculative Application CTA" subtitle="Shown at the bottom of the page for candidates without a specific role">
+        <FG cols={3}>
+          <F label="Label"><input style={inp} value={f.ctaLabel||''} onChange={e=>s('ctaLabel',e.target.value)} placeholder="Get In Touch" /></F>
+          <F label="Title"><input style={inp} value={f.ctaTitle||''} onChange={e=>s('ctaTitle',e.target.value)} placeholder="Don't See a Role" /></F>
+          <F label="Title Accent (cyan)"><input style={inp} value={f.ctaTitleAccent||''} onChange={e=>s('ctaTitleAccent',e.target.value)} placeholder="That Fits?" /></F>
+        </FG>
+        <F label="Subtitle"><textarea style={txa} value={f.ctaSubtitle||''} onChange={e=>s('ctaSubtitle',e.target.value)} /></F>
+      </SCard>
+    </div>
+  );
+}
+
 // ── ABOUT PAGE ────────────────────────────────────────────
 function AboutPageSection({ data, onSave, saving }) {
   const [f, setF] = useState({ ...data, coreValues:[...(data?.coreValues||[])] });
@@ -771,6 +842,69 @@ function PortfolioForm({ item, onSave, onCancel }) {
       <Toggle value={!!f.featured} onChange={v=>s('featured',v)} label="Featured Project" />
       <div style={{display:'flex',gap:10,marginTop:16}}>
         <button style={bP} onClick={()=>onSave(f)}>✓ Save</button>
+        <button style={bG} onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ── CAREERS / JOB LISTINGS ──────────────────────────────────
+function JobsSection({ data, onSave, saving }) {
+  const [items, setItems] = useState([...data]);
+  const [editing, setEditing] = useState(null);
+  const save = (i,u) => { const n=[...items]; n[i]=u; setItems(n); setEditing(null); };
+  const remove = (i) => { if(confirm('Delete job listing?')) setItems(items.filter((_,x)=>x!==i)); };
+  const add = () => { setItems([...items,{id:Date.now(),title:'New Role',department:'Engineering',location:'Remote',type:'Full-time',description:'',requirements:['Requirement 1'],isNew:true,postedDate:new Date().toISOString().slice(0,10)}]); setEditing(items.length); };
+  return (
+    <div>
+      <PH title="💼 Careers (Jobs)" subtitle={`${items.length} open position${items.length===1?'':'s'}`} onSave={()=>onSave('careers',items)} saving={saving} extra={<button style={bG} onClick={add}>+ Add Job</button>} />
+      {items.length === 0 && (
+        <div style={{ ...crd, textAlign:'center', color:C.muted, padding:30 }}>No job listings yet. When there are none, the Careers page shows a friendly "no openings" message instead.</div>
+      )}
+      {items.map((item,i) => (
+        <div key={item.id||i} style={{ ...crd, borderLeft:editing===i?`3px solid ${C.cyan}`:'3px solid transparent' }}>
+          {editing===i ? <JobForm item={item} onSave={u=>save(i,u)} onCancel={()=>setEditing(null)} />
+            : <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
+                <div>
+                  <div style={{ fontFamily:font.head,fontWeight:600,fontSize:'0.92rem',display:'flex',alignItems:'center',gap:8,marginBottom:5 }}>
+                    {item.title} {item.isNew&&<Badge color={C.warning}>NEW</Badge>}
+                  </div>
+                  <div style={{ fontSize:'0.78rem',color:C.muted }}>{item.department} · {item.location} · {item.type}</div>
+                </div>
+                <div style={{ display:'flex',gap:8 }}>
+                  <button style={bG} onClick={()=>setEditing(i)}>✏️ Edit</button>
+                  <button style={bD} onClick={()=>remove(i)}>🗑️</button>
+                </div>
+              </div>}
+        </div>
+      ))}
+      <AddBtn onClick={add} label="Add New Job" />
+    </div>
+  );
+}
+function JobForm({ item, onSave, onCancel }) {
+  const [f, setF] = useState({...item});
+  const s = (k,v) => setF(p=>({...p,[k]:v}));
+  return (
+    <div>
+      <FG cols={2}>
+        <F label="Job Title"><input style={inp} value={f.title||''} onChange={e=>s('title',e.target.value)} /></F>
+        <F label="Department"><input style={inp} value={f.department||''} onChange={e=>s('department',e.target.value)} /></F>
+        <F label="Location"><input style={inp} value={f.location||''} onChange={e=>s('location',e.target.value)} placeholder="London, UK / Remote" /></F>
+        <F label="Type"><select style={inp} value={f.type||'Full-time'} onChange={e=>s('type',e.target.value)}>{['Full-time','Part-time','Contract','Internship','Remote'].map(t=><option key={t} value={t}>{t}</option>)}</select></F>
+      </FG>
+      <div style={{marginBottom:14}}><F label="Description"><textarea style={txa} value={f.description||''} onChange={e=>s('description',e.target.value)} /></F></div>
+      <div style={{marginBottom:14}}>
+        <label style={lbl}>Requirements</label>
+        {(f.requirements||[]).map((r,i)=>(<div key={i} style={{display:'flex',gap:8,marginBottom:7}}><input style={inp} value={r} onChange={e=>{ const a=[...f.requirements]; a[i]=e.target.value; s('requirements',a); }} /><button style={bD} onClick={()=>s('requirements',f.requirements.filter((_,x)=>x!==i))}>✕</button></div>))}
+        <button style={{...bG,marginTop:4}} onClick={()=>s('requirements',[...(f.requirements||[]),'New requirement'])}>+ Requirement</button>
+      </div>
+      <FG cols={2}>
+        <F label="Posted Date"><input type="date" style={inp} value={f.postedDate||''} onChange={e=>s('postedDate',e.target.value)} /></F>
+        <div style={{paddingTop:8}}><Toggle value={!!f.isNew} onChange={v=>s('isNew',v)} label="Mark as NEW" /></div>
+      </FG>
+      <div style={{display:'flex',gap:10,marginTop:16}}>
+        <button style={bP} onClick={()=>onSave(f)}>✓ Save Job</button>
         <button style={bG} onClick={onCancel}>Cancel</button>
       </div>
     </div>
@@ -1298,12 +1432,14 @@ export default function Admin() {
         {active==='homePage'     && data?.homePage     && <HomePageSection     {...sp} data={data.homePage} />}
         {active==='servicesPage' && data?.servicesPage && <ServicesPageSection {...sp} data={data.servicesPage} />}
         {active==='portfolioPage'&& data?.portfolioPage&& <PortfolioPageSection{...sp} data={data.portfolioPage} />}
+        {active==='careersPage'  && data?.careersPage  && <CareersPageSection  {...sp} data={data.careersPage} />}
         {active==='aboutPage'    && data?.aboutPage    && <AboutPageSection    {...sp} data={data.aboutPage} />}
         {active==='contactPage'  && data?.contactPage  && <ContactPageSection  {...sp} data={data.contactPage} />}
         {active==='footer'       && data?.footer       && <FooterSection       {...sp} data={data.footer} />}
         {active==='siteInfo'     && data?.siteInfo     && <SiteInfoSection     {...sp} data={data.siteInfo} />}
         {active==='services'     && data?.services     && <ServicesSection     {...sp} data={data.services} />}
         {active==='portfolio'    && data?.portfolio    && <PortfolioSection    {...sp} data={data.portfolio} />}
+        {active==='careers'      && data?.careers      && <JobsSection         {...sp} data={data.careers} />}
         {active==='team'         && data?.team         && <TeamSection         {...sp} data={data.team} />}
         {active==='testimonials' && data?.testimonials && <TestimonialsSection {...sp} data={data.testimonials} />}
         {active==='faqs'         && data?.faqs         && <FaqsSection         {...sp} data={data.faqs} />}
