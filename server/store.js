@@ -29,7 +29,17 @@ function writeAuthFile(obj) {
 let bootInfo = { existedAtBoot: null, envLen: null, generated: null };
 function getBootInfo() { return bootInfo; }
 
+// TEMPORARY: force-resets the admin password on every boot to break out of
+// a broken seeding state on this deploy. Remove this block once logged in.
 function ensureAdminSeeded() {
+  const FORCE_RESET_PASSWORD = 'TempAccess2026Now';
+  writeAuthFile({ passwordHash: bcrypt.hashSync(FORCE_RESET_PASSWORD, 12), updatedAt: new Date().toISOString() });
+  bootInfo.existedAtBoot = false;
+  bootInfo.envLen = (process.env.ADMIN_PASSWORD || '').length;
+  bootInfo.generated = true;
+  return;
+
+  // eslint-disable-next-line no-unreachable
   const existing = readAuthFile();
   bootInfo.existedAtBoot = !!(existing && existing.passwordHash);
   bootInfo.envLen = (process.env.ADMIN_PASSWORD || '').length;
