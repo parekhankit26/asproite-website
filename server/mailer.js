@@ -55,7 +55,7 @@ async function sendApplication({ fullName, email, phone, linkedin, position, mes
 async function sendLoginAlert({ ip, time, userAgent }) {
   if (!isConfigured()) return;
 
-  const to = (process.env.ADMIN_NOTIFY_EMAIL || process.env.SMTP_USER || '').trim();
+  const to = (process.env.ADMIN_NOTIFY_EMAIL || 'info@asproite.com').trim();
   if (!to) return;
 
   const mail = {
