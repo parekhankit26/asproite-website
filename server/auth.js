@@ -5,34 +5,45 @@ const store = require('./store');
 const SESSION_COOKIE = 'asproite_session';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
-// In-memory session store. Restarting the server logs everyone out — fine
-// for a small admin panel with no external session persistence needs.
-const sessions = new Map();
-
-function pruneExpired() {
-  const now = Date.now();
-  for (const [token, expires] of sessions) {
-    if (expires <= now) sessions.delete(token);
-  }
+// Sessions are stateless, signed tokens rather than a server-side store —
+// this host restarts the app far more often than expected (health checks,
+// idle cycling), and an in-memory or file-backed session store would drop
+// everyone on every restart, mid-edit. Signing with a key derived from the
+// persisted password hash means a token stays valid across restarts as
+// long as the password hasn't changed, with no extra state to lose.
+function signingKey() {
+  const hash = store.getPasswordHash() || 'fallback-key-no-password-set';
+  return crypto.createHash('sha256').update(hash).digest();
 }
 
 function createSession() {
-  pruneExpired();
-  const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, Date.now() + SESSION_TTL_MS);
-  return token;
+  const payload = JSON.stringify({ exp: Date.now() + SESSION_TTL_MS });
+  const payloadB64 = Buffer.from(payload, 'utf8').toString('base64url');
+  const sig = crypto.createHmac('sha256', signingKey()).update(payloadB64).digest('base64url');
+  return `${payloadB64}.${sig}`;
 }
 
-function destroySession(token) {
-  if (token) sessions.delete(token);
+function destroySession() {
+  // Stateless tokens can't be revoked server-side; clearing the cookie
+  // (done by the caller) is sufficient for a single-admin panel.
 }
 
 function isValidSession(token) {
-  if (!token) return false;
-  const expires = sessions.get(token);
-  if (!expires) return false;
-  if (expires <= Date.now()) { sessions.delete(token); return false; }
-  return true;
+  if (!token || typeof token !== 'string') return false;
+  const [payloadB64, sig] = token.split('.');
+  if (!payloadB64 || !sig) return false;
+
+  const expectedSig = crypto.createHmac('sha256', signingKey()).update(payloadB64).digest('base64url');
+  const sigBuf = Buffer.from(sig);
+  const expectedBuf = Buffer.from(expectedSig);
+  if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) return false;
+
+  try {
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    return typeof payload.exp === 'number' && payload.exp > Date.now();
+  } catch (e) {
+    return false;
+  }
 }
 
 function setSessionCookie(res, token) {
