@@ -233,7 +233,7 @@
         "label": "Projects Delivered"
       },
       {
-        "value": "140+",
+        "value": "200+",
         "label": "Satisfied Clients"
       },
       {
@@ -328,7 +328,7 @@
       "label": "Years Experience"
     },
     {
-      "num": 140,
+      "num": 200,
       "suffix": "+",
       "label": "Clients Worldwide"
     },
@@ -643,5 +643,55 @@
     "marquee": true,
     "orbitRings": true
   },
-  "web3formsKey": "a7e6530d-9477-40ec-b325-1a8c1b77d24d"
+  "web3formsKey": "a7e6530d-9477-40ec-b325-1a8c1b77d24d",
+  "careers": [
+    {
+      "id": 1,
+      "title": "Senior Full-Stack Developer",
+      "department": "Engineering",
+      "location": "London, UK",
+      "type": "Full-time",
+      "description": "We're looking for an experienced full-stack developer to join our engineering team, building scalable web applications for clients across the UK.",
+      "requirements": [
+        "5+ years of full-stack development experience",
+        "Strong knowledge of React and Node.js",
+        "Experience with cloud platforms (AWS/Azure)",
+        "Excellent communication skills"
+      ],
+      "isNew": true,
+      "postedDate": "2026-07-01"
+    },
+    {
+      "id": 2,
+      "title": "Cloud Solutions Architect",
+      "department": "Cloud Services",
+      "location": "Remote (UK)",
+      "type": "Full-time",
+      "description": "Design and implement cloud migration strategies for enterprise clients, working closely with our infrastructure and support teams.",
+      "requirements": [
+        "AWS or Azure certification",
+        "7+ years in cloud architecture",
+        "Experience leading migration projects",
+        "Strong client-facing communication"
+      ],
+      "isNew": false,
+      "postedDate": "2026-06-15"
+    },
+    {
+      "id": 3,
+      "title": "IT Support Engineer",
+      "department": "IT Support",
+      "location": "Vadodara, India",
+      "type": "Full-time",
+      "description": "Provide first and second-line technical support to our growing client base, with opportunities to progress into senior support and infrastructure roles.",
+      "requirements": [
+        "2+ years in IT support or helpdesk",
+        "Strong troubleshooting skills",
+        "Familiarity with Windows and network fundamentals",
+        "Customer-focused attitude"
+      ],
+      "isNew": false,
+      "postedDate": "2026-06-01"
+    }
+  ]
 }
