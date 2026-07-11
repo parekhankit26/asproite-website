@@ -57,25 +57,12 @@ function decodeAndVerifySignature(token) {
   }
 }
 
-// Node represents the same client differently across requests depending on
-// which loopback/dual-stack path a connection takes — e.g. "::1" on one
-// request and "::ffff:127.0.0.1" on the next, same machine, same network.
-// Normalizing strips that noise so IP binding compares the address that
-// actually matters instead of an incidental representation of it.
-function normalizeIp(ip) {
-  const s = String(ip || '');
-  if (s === '::1') return '127.0.0.1';
-  if (s.startsWith('::ffff:')) return s.slice(7);
-  return s;
-}
-
-function createSession(ip) {
+function createSession() {
   const now = Date.now();
   const payload = {
     iat: now, // fixed for the life of the session; enforces the absolute cap
     exp: now + IDLE_TTL_MS, // sliding; extended by renewSession on activity
     pwdAt: store.getPasswordChangedAt(), // password change invalidates older tokens
-    ip: normalizeIp(ip), // session is pinned to the IP it was issued from
   };
   return encodeToken(payload);
 }
@@ -85,15 +72,21 @@ function destroySession() {
   // (done by the caller) is sufficient for a single-admin panel.
 }
 
-// Full validation: signature, sliding expiry, absolute cap, password-epoch,
-// and IP binding all have to pass.
-function isValidSession(token, ip) {
+// Full validation: signature, sliding expiry, absolute cap, and
+// password-epoch all have to pass.
+//
+// IP binding was tried and removed: Hostinger's proxy path doesn't report
+// a stable client IP for the same browser session (observed both an
+// IPv4/IPv6 loopback representation mismatch locally, and real 401s in
+// production within the same page load), so it was locking the admin out
+// of their own panel rather than blocking anyone. The 15-minute idle
+// timeout and 8-hour absolute cap are the actual backstop here.
+function isValidSession(token) {
   const payload = decodeAndVerifySignature(token);
   if (!payload) return false;
   if (typeof payload.exp !== 'number' || payload.exp <= Date.now()) return false;
   if (typeof payload.iat !== 'number' || Date.now() - payload.iat > ABSOLUTE_TTL_MS) return false;
   if (payload.pwdAt !== store.getPasswordChangedAt()) return false;
-  if (payload.ip !== normalizeIp(ip)) return false;
   return true;
 }
 
@@ -102,18 +95,16 @@ function isValidSession(token, ip) {
 // Preserves the original iat so the absolute cap still applies, and refuses
 // to renew past it — that forces re-login every 8 hours no matter how
 // active the admin is.
-function renewSession(token, ip) {
+function renewSession(token) {
   const payload = decodeAndVerifySignature(token);
   if (!payload) return null;
   if (typeof payload.iat !== 'number' || Date.now() - payload.iat > ABSOLUTE_TTL_MS) return null;
   if (payload.pwdAt !== store.getPasswordChangedAt()) return null;
-  if (payload.ip !== normalizeIp(ip)) return null;
 
   return encodeToken({
     iat: payload.iat,
     exp: Date.now() + IDLE_TTL_MS,
     pwdAt: payload.pwdAt,
-    ip: payload.ip,
   });
 }
 
@@ -138,9 +129,8 @@ function clearSessionCookie(res) {
 // endpoint for activity that doesn't hit the API (e.g. typing).
 function requireAuth(req, res, next) {
   const token = req.cookies ? req.cookies[SESSION_COOKIE] : null;
-  const ip = req.ip;
-  if (!isValidSession(token, ip)) return res.status(401).json({ error: 'Not authenticated' });
-  const renewed = renewSession(token, ip);
+  if (!isValidSession(token)) return res.status(401).json({ error: 'Not authenticated' });
+  const renewed = renewSession(token);
   if (renewed) setSessionCookie(res, renewed);
   next();
 }

@@ -1134,7 +1134,7 @@ function PasswordSection() {
         <ul style={{ margin:0, paddingLeft:20, color:C.muted, fontSize:'0.84rem', lineHeight:1.9 }}>
           <li>You're signed out after <strong style={{color:C.text}}>15 minutes</strong> of inactivity.</li>
           <li>Every session ends after <strong style={{color:C.text}}>8 hours</strong> regardless of activity.</li>
-          <li>Sessions are pinned to the IP address you logged in from — switching networks requires signing in again.</li>
+          <li>Changing your password signs out every other active session.</li>
           <li>You'll get an email alert on every successful login.</li>
         </ul>
       </SCard>

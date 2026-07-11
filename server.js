@@ -68,7 +68,7 @@ const upload = multer({
 
 // ── Admin auth ──────────────────────────────────────────────
 function completeLogin(req, res) {
-  const token = auth.createSession(req.ip);
+  const token = auth.createSession();
   auth.setSessionCookie(res, token);
   mailer.sendLoginAlert({
     ip: req.ip,
@@ -99,7 +99,7 @@ app.post('/site-api/admin/logout', (req, res) => {
 });
 
 app.get('/site-api/admin/session', (req, res) => {
-  res.json({ loggedIn: auth.isValidSession(req.cookies?.[auth.SESSION_COOKIE], req.ip) });
+  res.json({ loggedIn: auth.isValidSession(req.cookies?.[auth.SESSION_COOKIE]) });
 });
 
 // Pinged by the admin panel on real user activity so the sliding 15-minute
@@ -119,7 +119,7 @@ app.post('/site-api/admin/change-password', auth.requireAuth, (req, res) => {
   // Invalidates every other session that was issued before this change
   // (see auth.js pwdAt check) — the current request's own cookie is stale
   // too, so re-issue a fresh one instead of logging the admin out.
-  const token = auth.createSession(req.ip);
+  const token = auth.createSession();
   auth.setSessionCookie(res, token);
   res.json({ ok: true });
 });
