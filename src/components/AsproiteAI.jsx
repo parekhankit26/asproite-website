@@ -109,7 +109,7 @@ export default function AsproiteAI() {
       if (res.status === 503) {
         setMessages(prev => [...prev, {
           role:'assistant',
-          content:`I'm not fully configured yet — but our team is happy to help directly!\n\n📧 **info@asproite.com**\n📞 **+44 (0)7555185061**\n\nOr visit our [Contact page](/#/contact) to send a message.`
+          content:`I'm not fully configured yet — but our team is happy to help directly!\n\n📧 **info@asproite.com**\n📞 **+44 (0)7555185061**\n\nOr visit our [Contact page](/contact) to send a message.`
         }]);
         setLoading(false);
         return;

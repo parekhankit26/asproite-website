@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import { Cursor } from './components/index.jsx';
 import Navbar from './components/Navbar.jsx';
@@ -9,6 +9,7 @@ import Services from './pages/Services.jsx';
 import Portfolio from './pages/Portfolio.jsx';
 import Careers from './pages/Careers.jsx';
 import Contact from './pages/Contact.jsx';
+import { IndustriesIndex, IndustryDetail } from './pages/Industries.jsx';
 import Admin from './pages/Admin.jsx';
 import ITHealthCheck from './pages/ITHealthCheck.jsx';
 import AsproiteAI from './components/AsproiteAI.jsx';
@@ -86,7 +87,7 @@ function Layout({ children }) {
 export default function App() {
   return (
     <SiteDataProvider>
-      <HashRouter>
+      <BrowserRouter>
         <ScrollToTop />
         <Routes>
           <Route path="/admin" element={<Admin />} />
@@ -102,6 +103,8 @@ export default function App() {
                   <Route path="/services" element={<Services />} />
                   <Route path="/portfolio" element={<Portfolio />} />
                   <Route path="/careers" element={<Careers />} />
+                  <Route path="/industries" element={<IndustriesIndex />} />
+                  <Route path="/industries/:slug" element={<IndustryDetail />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/it-health-check" element={<ITHealthCheck />} />
                   <Route path="*" element={<NotFound />} />
@@ -110,7 +113,7 @@ export default function App() {
             </>
           } />
         </Routes>
-      </HashRouter>
+      </BrowserRouter>
     </SiteDataProvider>
   );
 }
@@ -121,7 +124,7 @@ function NotFound() {
       <div style={{ fontFamily: 'var(--font-head)', fontSize: '8rem', fontWeight: 800, color: 'var(--cyan)', lineHeight: 1, marginBottom: 24 }}>404</div>
       <h2 style={{ marginBottom: 16 }}>Page <em>Not Found</em></h2>
       <p style={{ color: 'var(--muted)', marginBottom: 36, maxWidth: 400, lineHeight: 1.7 }}>The page you are looking for does not exist.</p>
-      <a href="#/" className="btn-primary">Back to Home</a>
+      <a href="/" className="btn-primary">Back to Home</a>
     </div>
   );
 }

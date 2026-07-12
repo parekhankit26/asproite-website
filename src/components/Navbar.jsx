@@ -25,6 +25,7 @@ export default function Navbar() {
     { to: '/', label: 'Home' },
     { to: '/about', label: 'About' },
     { to: '/services', label: 'Services' },
+    { to: '/industries', label: 'Industries' },
     { to: '/portfolio', label: 'Portfolio' },
     { to: '/careers', label: 'Careers' },
     { to: '/contact', label: 'Contact' },
@@ -51,7 +52,7 @@ export default function Navbar() {
 
         {/* Desktop Nav */}
         <ul style={{ display: 'flex', gap: 34, listStyle: 'none', alignItems: 'center' }} className="nav-desktop">
-          {links.slice(0, 5).map(({ to, label }) => (
+          {links.slice(0, 6).map(({ to, label }) => (
             <li key={to}>
               <Link to={to} style={{
                 fontSize: '0.78rem', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase',
@@ -118,6 +119,10 @@ export default function Navbar() {
           }
           .nav-link:hover { color: var(--cyan) !important; }
           .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+          @media (max-width: 1300px) and (min-width: 769px) {
+            nav { padding: 18px 28px !important; }
+            .nav-desktop { gap: 18px !important; }
+          }
           @media (max-width: 768px) {
             nav { padding: 16px 20px !important; }
             .nav-desktop { display: none !important; }

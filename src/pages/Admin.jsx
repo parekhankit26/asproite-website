@@ -25,6 +25,7 @@ const SECTIONS = [
   { id:'servicesPage', label:'Services Page',  icon:'⚙️', desc:'Headings, process, why us' },
   { id:'portfolioPage',label:'Portfolio Page', icon:'🖼️', desc:'Headings, stats bar, CTA' },
   { id:'careersPage',  label:'Careers Page',   icon:'💼', desc:'Header, perks, CTA' },
+  { id:'industriesPage', label:'Industries Page', icon:'🏭', desc:'Header, CTA' },
   { id:'aboutPage',    label:'About Page',     icon:'📖', desc:'Mission, values, sections' },
   { id:'contactPage',  label:'Contact Page',   icon:'📞', desc:'Headings, info cards, form' },
   { id:'footer',       label:'Footer',         icon:'📌', desc:'Links, newsletter, socials' },
@@ -32,6 +33,7 @@ const SECTIONS = [
   { id:'services',     label:'Services (Items)',icon:'🔧',desc:'Add/edit/remove services' },
   { id:'portfolio',    label:'Portfolio (Items)',icon:'📂',desc:'Projects & case studies' },
   { id:'careers',      label:'Careers (Jobs)', icon:'💼', desc:'Add/edit/remove job listings' },
+  { id:'industries',   label:'Industries (List)', icon:'🏭', desc:'Add/edit industry landing pages' },
   { id:'team',         label:'Team',           icon:'👥', desc:'Team members & bios' },
   { id:'testimonials', label:'Testimonials',   icon:'💬', desc:'Client quotes' },
   { id:'faqs',         label:'FAQs',           icon:'❓', desc:'Questions & answers' },
@@ -539,6 +541,42 @@ function CareersPageSection({ data, onSave, saving }) {
   );
 }
 
+// ── INDUSTRIES PAGE ───────────────────────────────────────
+function IndustriesPageSection({ data, onSave, saving }) {
+  const [f, setF] = useState({ ...data });
+  const s = (k,v) => setF(p=>({...p,[k]:v}));
+  return (
+    <div>
+      <PH title="🏭 Industries Page" subtitle="Header and CTA copy for the industries index page" onSave={()=>onSave('industriesPage',f)} saving={saving} />
+
+      <SCard title="Page Header">
+        <FG cols={2}>
+          <F label="Page Title"><input style={inp} value={f.pageTitle||''} onChange={e=>s('pageTitle',e.target.value)} placeholder="IT Solutions Built for" /></F>
+          <F label="Page Title Accent (cyan)"><input style={inp} value={f.pageTitleAccent||''} onChange={e=>s('pageTitleAccent',e.target.value)} placeholder="Your Industry" /></F>
+        </FG>
+        <F label="Page Subtitle"><textarea style={txa} value={f.subtitle||''} onChange={e=>s('subtitle',e.target.value)} /></F>
+      </SCard>
+
+      <SCard title="Industries Grid Section Heading">
+        <FG cols={3}>
+          <F label="Section Label"><input style={inp} value={f.sectionLabel||''} onChange={e=>s('sectionLabel',e.target.value)} placeholder="Industries We Serve" /></F>
+          <F label="Title"><input style={inp} value={f.sectionTitle||''} onChange={e=>s('sectionTitle',e.target.value)} placeholder="Specialised" /></F>
+          <F label="Title Accent (cyan)"><input style={inp} value={f.sectionTitleAccent||''} onChange={e=>s('sectionTitleAccent',e.target.value)} placeholder="Expertise" /></F>
+        </FG>
+      </SCard>
+
+      <SCard title="Bottom CTA" subtitle="Shown to visitors whose industry isn't listed">
+        <FG cols={3}>
+          <F label="Label"><input style={inp} value={f.ctaLabel||''} onChange={e=>s('ctaLabel',e.target.value)} placeholder="Not Seeing Your Industry?" /></F>
+          <F label="Title"><input style={inp} value={f.ctaTitle||''} onChange={e=>s('ctaTitle',e.target.value)} placeholder="We Work With" /></F>
+          <F label="Title Accent (cyan)"><input style={inp} value={f.ctaTitleAccent||''} onChange={e=>s('ctaTitleAccent',e.target.value)} placeholder="Every Sector" /></F>
+        </FG>
+        <F label="Subtitle"><textarea style={txa} value={f.ctaSubtitle||''} onChange={e=>s('ctaSubtitle',e.target.value)} /></F>
+      </SCard>
+    </div>
+  );
+}
+
 // ── ABOUT PAGE ────────────────────────────────────────────
 function AboutPageSection({ data, onSave, saving }) {
   const [f, setF] = useState({ ...data, coreValues:[...(data?.coreValues||[])] });
@@ -934,6 +972,103 @@ function JobForm({ item, onSave, onCancel }) {
       </FG>
       <div style={{display:'flex',gap:10,marginTop:16}}>
         <button style={bP} onClick={()=>onSave(f)}>✓ Save Job</button>
+        <button style={bG} onClick={onCancel}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ── INDUSTRIES (LIST) ──────────────────────────────────────
+function IndustriesSection({ data, onSave, saving }) {
+  const [items, setItems] = useState([...data]);
+  const [editing, setEditing] = useState(null);
+  const save = (i,u) => { const n=[...items]; n[i]=u; setItems(n); setEditing(null); };
+  const remove = (i) => { if(confirm('Delete this industry page? Its URL will stop working immediately.')) setItems(items.filter((_,x)=>x!==i)); };
+  const add = () => { setItems([...items,{id:Date.now(),slug:'new-industry',icon:'🏭',name:'New Industry',metaDescription:'',heroTitle:'IT Support Built for',heroTitleAccent:'Your Industry',heroSubtitle:'',painPoints:['Pain point 1'],relevantServices:['IT Support'],caseStudyTitle:'',caseStudyText:'',testimonialQuote:'',testimonialName:'',testimonialRole:'',ctaText:'Book a Consultation'}]); setEditing(items.length); };
+  return (
+    <div>
+      <PH title="🏭 Industries (List)" subtitle={`${items.length} industry page${items.length===1?'':'s'} — each gets its own URL at /industries/[slug]`} onSave={()=>onSave('industries',items)} saving={saving} extra={<button style={bG} onClick={add}>+ Add Industry</button>} />
+      {items.length === 0 && (
+        <div style={{ ...crd, textAlign:'center', color:C.muted, padding:30 }}>No industry pages yet.</div>
+      )}
+      {items.map((item,i) => (
+        <div key={item.id||i} style={{ ...crd, borderLeft:editing===i?`3px solid ${C.cyan}`:'3px solid transparent' }}>
+          {editing===i ? <IndustryForm item={item} onSave={u=>save(i,u)} onCancel={()=>setEditing(null)} />
+            : <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
+                <div>
+                  <div style={{ fontFamily:font.head,fontWeight:600,fontSize:'0.92rem',display:'flex',alignItems:'center',gap:8,marginBottom:5 }}>
+                    {item.icon} {item.name}
+                  </div>
+                  <div style={{ fontSize:'0.78rem',color:C.muted }}>/industries/{item.slug}</div>
+                </div>
+                <div style={{ display:'flex',gap:8 }}>
+                  <button style={bG} onClick={()=>setEditing(i)}>✏️ Edit</button>
+                  <button style={bD} onClick={()=>remove(i)}>🗑️</button>
+                </div>
+              </div>}
+        </div>
+      ))}
+      <AddBtn onClick={add} label="Add New Industry" />
+    </div>
+  );
+}
+function IndustryForm({ item, onSave, onCancel }) {
+  const [f, setF] = useState({ ...item, painPoints:[...(item.painPoints||[])], relevantServices:[...(item.relevantServices||[])] });
+  const s = (k,v) => setF(p=>({...p,[k]:v}));
+  const slugify = (str) => String(str||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  return (
+    <div>
+      <FG cols={3}>
+        <F label="Icon (Emoji)"><input style={inp} value={f.icon||''} onChange={e=>s('icon',e.target.value)} /></F>
+        <F label="Industry Name"><input style={inp} value={f.name||''} onChange={e=>s('name',e.target.value)} placeholder="Healthcare & Clinics" /></F>
+        <F label="URL Slug"><input style={inp} value={f.slug||''} onChange={e=>s('slug',slugify(e.target.value))} placeholder="healthcare" /></F>
+      </FG>
+      <div style={{marginBottom:14}}><F label="Meta Description (for Google search results, ~155 characters)"><textarea style={{...txa,minHeight:55}} value={f.metaDescription||''} onChange={e=>s('metaDescription',e.target.value)} /></F></div>
+      <FG cols={2}>
+        <F label="Hero Title"><input style={inp} value={f.heroTitle||''} onChange={e=>s('heroTitle',e.target.value)} placeholder="IT Support Built for" /></F>
+        <F label="Hero Title Accent (cyan)"><input style={inp} value={f.heroTitleAccent||''} onChange={e=>s('heroTitleAccent',e.target.value)} placeholder="Healthcare Providers" /></F>
+      </FG>
+      <div style={{marginBottom:14}}><F label="Hero Subtitle"><textarea style={{...txa,minHeight:55}} value={f.heroSubtitle||''} onChange={e=>s('heroSubtitle',e.target.value)} /></F></div>
+
+      <div style={{marginBottom:14}}>
+        <label style={lbl}>Pain Points (problems this industry faces)</label>
+        {f.painPoints.map((p,i) => (
+          <div key={i} style={{ display:'flex', gap:8, marginBottom:8 }}>
+            <input style={inp} value={p} onChange={e=>{ const a=[...f.painPoints]; a[i]=e.target.value; s('painPoints',a); }} />
+            <button style={bD} onClick={()=>s('painPoints',f.painPoints.filter((_,x)=>x!==i))}>✕</button>
+          </div>
+        ))}
+        <button style={{ ...bG, marginTop:4 }} onClick={()=>s('painPoints',[...f.painPoints,'New pain point'])}>+ Add Pain Point</button>
+      </div>
+
+      <div style={{marginBottom:14}}>
+        <label style={lbl}>Relevant Services (must match names on Services page)</label>
+        {f.relevantServices.map((r,i) => (
+          <div key={i} style={{ display:'flex', gap:8, marginBottom:8 }}>
+            <input style={inp} value={r} onChange={e=>{ const a=[...f.relevantServices]; a[i]=e.target.value; s('relevantServices',a); }} />
+            <button style={bD} onClick={()=>s('relevantServices',f.relevantServices.filter((_,x)=>x!==i))}>✕</button>
+          </div>
+        ))}
+        <button style={{ ...bG, marginTop:4 }} onClick={()=>s('relevantServices',[...f.relevantServices,'Service Name'])}>+ Add Service</button>
+      </div>
+
+      <SCard title="Case Study" subtitle="Real project proof for this industry">
+        <div style={{marginBottom:12}}><F label="Case Study Title"><input style={inp} value={f.caseStudyTitle||''} onChange={e=>s('caseStudyTitle',e.target.value)} /></F></div>
+        <F label="Case Study Description"><textarea style={{...txa,minHeight:60}} value={f.caseStudyText||''} onChange={e=>s('caseStudyText',e.target.value)} /></F>
+      </SCard>
+
+      <SCard title="Testimonial">
+        <div style={{marginBottom:12}}><F label="Quote"><textarea style={{...txa,minHeight:55}} value={f.testimonialQuote||''} onChange={e=>s('testimonialQuote',e.target.value)} /></F></div>
+        <FG cols={2}>
+          <F label="Client Name"><input style={inp} value={f.testimonialName||''} onChange={e=>s('testimonialName',e.target.value)} /></F>
+          <F label="Client Role & Company"><input style={inp} value={f.testimonialRole||''} onChange={e=>s('testimonialRole',e.target.value)} /></F>
+        </FG>
+      </SCard>
+
+      <div style={{marginBottom:14}}><F label="CTA Button Text"><input style={inp} value={f.ctaText||''} onChange={e=>s('ctaText',e.target.value)} placeholder="Book a Consultation" /></F></div>
+
+      <div style={{display:'flex',gap:10,marginTop:16}}>
+        <button style={bP} onClick={()=>onSave(f)}>✓ Save Industry</button>
         <button style={bG} onClick={onCancel}>Cancel</button>
       </div>
     </div>
@@ -1596,7 +1731,7 @@ export default function Admin() {
           ))}
         </nav>
         <div style={{ padding:'14px 18px', borderTop:`1px solid ${C.border}` }}>
-          <a href="/#/" target="_blank" rel="noreferrer" style={{ display:'flex', alignItems:'center', gap:8, color:C.muted, textDecoration:'none', fontSize:'0.78rem', padding:'8px 12px', borderRadius:7, marginBottom:7, background:C.cyanDim, border:`1px solid ${C.border}` }}>🌐 <span>View Live Site</span></a>
+          <a href="/" target="_blank" rel="noreferrer" style={{ display:'flex', alignItems:'center', gap:8, color:C.muted, textDecoration:'none', fontSize:'0.78rem', padding:'8px 12px', borderRadius:7, marginBottom:7, background:C.cyanDim, border:`1px solid ${C.border}` }}>🌐 <span>View Live Site</span></a>
           <button onClick={() => setActive('settings')} style={{ ...bG, width:'100%', justifyContent:'center', padding:8, marginBottom:7, fontSize:'0.74rem' }}>🚀 Publish to All Devices</button>
           <button onClick={()=>{ adminLogout(); setLoggedIn(false); }} style={{ ...bD, width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:9 }}>🚪 Sign Out</button>
         </div>
@@ -1608,6 +1743,7 @@ export default function Admin() {
         {active==='servicesPage' && data?.servicesPage && <ServicesPageSection {...sp} data={data.servicesPage} />}
         {active==='portfolioPage'&& data?.portfolioPage&& <PortfolioPageSection{...sp} data={data.portfolioPage} />}
         {active==='careersPage'  && data?.careersPage  && <CareersPageSection  {...sp} data={data.careersPage} />}
+        {active==='industriesPage' && data?.industriesPage && <IndustriesPageSection {...sp} data={data.industriesPage} />}
         {active==='aboutPage'    && data?.aboutPage    && <AboutPageSection    {...sp} data={data.aboutPage} />}
         {active==='contactPage'  && data?.contactPage  && <ContactPageSection  {...sp} data={data.contactPage} />}
         {active==='footer'       && data?.footer       && <FooterSection       {...sp} data={data.footer} />}
@@ -1615,6 +1751,7 @@ export default function Admin() {
         {active==='services'     && data?.services     && <ServicesSection     {...sp} data={data.services} />}
         {active==='portfolio'    && data?.portfolio    && <PortfolioSection    {...sp} data={data.portfolio} />}
         {active==='careers'      && data?.careers      && <JobsSection         {...sp} data={data.careers} />}
+        {active==='industries'   && data?.industries   && <IndustriesSection   {...sp} data={data.industries} />}
         {active==='team'         && data?.team         && <TeamSection         {...sp} data={data.team} />}
         {active==='testimonials' && data?.testimonials && <TestimonialsSection {...sp} data={data.testimonials} />}
         {active==='faqs'         && data?.faqs         && <FaqsSection         {...sp} data={data.faqs} />}
