@@ -55,7 +55,7 @@ async function sendApplication({ fullName, email, phone, linkedin, position, mes
 async function sendReferral({ referrerName, referrerEmail, referrerPhone, businessName, contactName, contactEmail, contactPhone, message }) {
   if (!isConfigured()) throw Object.assign(new Error('Email not configured'), { code: 'not_configured' });
 
-  const to = (process.env.REFERRAL_EMAIL || 'info@asproite.com').trim();
+  const to = (process.env.REFERRAL_EMAIL || 'inquiry@asproite.com').trim();
   const lines = [
     `<p><strong>Referred by:</strong> ${escapeHtml(referrerName)} (${escapeHtml(referrerEmail)}${referrerPhone ? ', ' + escapeHtml(referrerPhone) : ''})</p>`,
     `<p><strong>Business being referred:</strong> ${escapeHtml(businessName)}</p>`,
@@ -79,7 +79,7 @@ async function sendReferral({ referrerName, referrerEmail, referrerPhone, busine
 async function sendLoginAlert({ ip, time, userAgent }) {
   if (!isConfigured()) return;
 
-  const to = (process.env.ADMIN_NOTIFY_EMAIL || 'info@asproite.com').trim();
+  const to = (process.env.ADMIN_NOTIFY_EMAIL || 'inquiry@asproite.com').trim();
   if (!to) return;
 
   const mail = {
