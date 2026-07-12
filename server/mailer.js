@@ -79,7 +79,7 @@ async function sendReferral({ referrerName, referrerEmail, referrerPhone, busine
 async function sendLoginAlert({ ip, time, userAgent }) {
   if (!isConfigured()) return;
 
-  const to = (process.env.ADMIN_NOTIFY_EMAIL || 'inquiry@asproite.com').trim();
+  const to = (process.env.ADMIN_NOTIFY_EMAIL || 'info@asproite.com').trim();
   if (!to) return;
 
   const mail = {
