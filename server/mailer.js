@@ -31,12 +31,21 @@ async function sendApplication({ fullName, email, phone, linkedin, position, mes
     `<p><strong>LinkedIn / Portfolio:</strong> ${escapeHtml(linkedin || 'Not provided')}</p>`,
     `<p><strong>Cover Letter:</strong><br>${escapeHtml(message || 'Not provided').replace(/\n/g, '<br>')}</p>`,
   ];
+  const text = [
+    `Position: ${position}`,
+    `Full Name: ${fullName}`,
+    `Email: ${email}`,
+    `Phone: ${phone || 'Not provided'}`,
+    `LinkedIn / Portfolio: ${linkedin || 'Not provided'}`,
+    `Cover Letter:\n${message || 'Not provided'}`,
+  ].join('\n\n');
 
   const mail = {
     from: `"Asproite Careers" <${process.env.SMTP_USER}>`,
     to,
     replyTo: email,
     subject: `Job Application: ${position} — ${fullName}`,
+    text,
     html: lines.join('\n'),
     attachments: [],
   };
@@ -52,24 +61,41 @@ async function sendApplication({ fullName, email, phone, linkedin, position, mes
   await getTransporter().sendMail(mail);
 }
 
+// Wording matters here: spam filters (SpamAssassin and similar, which most
+// shared mail hosting runs) heavily penalize "referral"-style subject
+// lines — they closely match affiliate/referral marketing spam patterns.
+// A plain "New website enquiry" framing, a text/plain alternative (HTML-only
+// mail is itself a spam signal), and a from-name matching the rest of the
+// site's mail (not a distinct "Referrals" persona) all measurably reduce
+// that risk. Confirmed necessary in production: these were being delivered
+// successfully but landing in spam under the old subject/HTML-only format.
 async function sendReferral({ referrerName, referrerEmail, referrerPhone, businessName, contactName, contactEmail, contactPhone, message }) {
   if (!isConfigured()) throw Object.assign(new Error('Email not configured'), { code: 'not_configured' });
 
   const to = (process.env.REFERRAL_EMAIL || 'inquiry@asproite.com').trim();
   const lines = [
     `<p><strong>Referred by:</strong> ${escapeHtml(referrerName)} (${escapeHtml(referrerEmail)}${referrerPhone ? ', ' + escapeHtml(referrerPhone) : ''})</p>`,
-    `<p><strong>Business being referred:</strong> ${escapeHtml(businessName)}</p>`,
+    `<p><strong>Business:</strong> ${escapeHtml(businessName)}</p>`,
     `<p><strong>Contact Name:</strong> ${escapeHtml(contactName || 'Not provided')}</p>`,
     `<p><strong>Contact Email:</strong> ${escapeHtml(contactEmail || 'Not provided')}</p>`,
     `<p><strong>Contact Phone:</strong> ${escapeHtml(contactPhone || 'Not provided')}</p>`,
-    `<p><strong>Message:</strong><br>${escapeHtml(message || 'Not provided').replace(/\n/g, '<br>')}</p>`,
+    `<p><strong>Notes:</strong><br>${escapeHtml(message || 'Not provided').replace(/\n/g, '<br>')}</p>`,
   ];
+  const text = [
+    `Referred by: ${referrerName} (${referrerEmail}${referrerPhone ? ', ' + referrerPhone : ''})`,
+    `Business: ${businessName}`,
+    `Contact Name: ${contactName || 'Not provided'}`,
+    `Contact Email: ${contactEmail || 'Not provided'}`,
+    `Contact Phone: ${contactPhone || 'Not provided'}`,
+    `Notes:\n${message || 'Not provided'}`,
+  ].join('\n\n');
 
   const mail = {
-    from: `"Asproite Referrals" <${process.env.SMTP_USER}>`,
+    from: `"Asproite Website" <${process.env.SMTP_USER}>`,
     to,
     replyTo: referrerEmail,
-    subject: `New Referral: ${businessName} — via ${referrerName}`,
+    subject: `Website enquiry: business introduction — ${businessName}`,
+    text,
     html: lines.join('\n'),
   };
 
@@ -82,10 +108,19 @@ async function sendLoginAlert({ ip, time, userAgent }) {
   const to = (process.env.ADMIN_NOTIFY_EMAIL || 'info@asproite.com').trim();
   if (!to) return;
 
+  const text = [
+    'A successful admin login was just recorded.',
+    `Time: ${time}`,
+    `IP address: ${ip || 'unknown'}`,
+    `Browser: ${userAgent || 'unknown'}`,
+    "If this wasn't you, change the admin password immediately.",
+  ].join('\n');
+
   const mail = {
     from: `"Asproite Admin" <${process.env.SMTP_USER}>`,
     to,
     subject: 'Asproite Admin: new login',
+    text,
     html: [
       `<p>A successful admin login was just recorded.</p>`,
       `<p><strong>Time:</strong> ${escapeHtml(time)}</p>`,
