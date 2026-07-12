@@ -26,6 +26,7 @@ const SECTIONS = [
   { id:'portfolioPage',label:'Portfolio Page', icon:'🖼️', desc:'Headings, stats bar, CTA' },
   { id:'careersPage',  label:'Careers Page',   icon:'💼', desc:'Header, perks, CTA' },
   { id:'industriesPage', label:'Industries Page', icon:'🏭', desc:'Header, CTA' },
+  { id:'referralPage',   label:'Referral Program', icon:'🤝', desc:'Reward, steps, form text' },
   { id:'aboutPage',    label:'About Page',     icon:'📖', desc:'Mission, values, sections' },
   { id:'contactPage',  label:'Contact Page',   icon:'📞', desc:'Headings, info cards, form' },
   { id:'footer',       label:'Footer',         icon:'📌', desc:'Links, newsletter, socials' },
@@ -572,6 +573,72 @@ function IndustriesPageSection({ data, onSave, saving }) {
           <F label="Title Accent (cyan)"><input style={inp} value={f.ctaTitleAccent||''} onChange={e=>s('ctaTitleAccent',e.target.value)} placeholder="Every Sector" /></F>
         </FG>
         <F label="Subtitle"><textarea style={txa} value={f.ctaSubtitle||''} onChange={e=>s('ctaSubtitle',e.target.value)} /></F>
+      </SCard>
+    </div>
+  );
+}
+
+// ── REFERRAL PROGRAM PAGE ──────────────────────────────────
+function ReferralPageSection({ data, onSave, saving }) {
+  const [f, setF] = useState({ ...data, steps:[...(data?.steps||[])] });
+  const s = (k,v) => setF(p=>({...p,[k]:v}));
+  const ss = (i,k,v) => { const a=[...f.steps]; a[i]={...a[i],[k]:v}; s('steps',a); };
+  return (
+    <div>
+      <PH title="🤝 Referral Program" subtitle="Reward copy, how-it-works steps, and form text" onSave={()=>onSave('referralPage',f)} saving={saving} />
+
+      <div style={{ background:C.dangerDim, border:`1px solid rgba(255,71,87,0.2)`, borderRadius:8, padding:'12px 16px', marginBottom:20, color:C.danger, fontSize:'0.82rem', lineHeight:1.6 }}>
+        ⚠️ The reward text below is a placeholder. Fill in your actual referral offer (e.g. a cash amount, a percentage, or a free service) before promoting this page.
+      </div>
+
+      <SCard title="Page Header">
+        <FG cols={2}>
+          <F label="Page Title"><input style={inp} value={f.pageTitle||''} onChange={e=>s('pageTitle',e.target.value)} placeholder="Refer a Business," /></F>
+          <F label="Page Title Accent (cyan)"><input style={inp} value={f.pageTitleAccent||''} onChange={e=>s('pageTitleAccent',e.target.value)} placeholder="Get Rewarded" /></F>
+        </FG>
+        <F label="Page Subtitle"><textarea style={txa} value={f.subtitle||''} onChange={e=>s('subtitle',e.target.value)} /></F>
+      </SCard>
+
+      <SCard title="Reward Section">
+        <FG cols={3}>
+          <F label="Label"><input style={inp} value={f.rewardLabel||''} onChange={e=>s('rewardLabel',e.target.value)} placeholder="The Reward" /></F>
+          <F label="Title"><input style={inp} value={f.rewardTitle||''} onChange={e=>s('rewardTitle',e.target.value)} placeholder="What You" /></F>
+          <F label="Title Accent (cyan)"><input style={inp} value={f.rewardTitleAccent||''} onChange={e=>s('rewardTitleAccent',e.target.value)} placeholder="Get" /></F>
+        </FG>
+        <F label="Reward Text — describe the actual offer here"><textarea style={{...txa,minHeight:100}} value={f.rewardText||''} onChange={e=>s('rewardText',e.target.value)} /></F>
+      </SCard>
+
+      <SCard title="How It Works" subtitle="Steps shown between the reward and the form">
+        <FG cols={3}>
+          <F label="Section Label"><input style={inp} value={f.stepsLabel||''} onChange={e=>s('stepsLabel',e.target.value)} placeholder="How It Works" /></F>
+          <F label="Title"><input style={inp} value={f.stepsTitle||''} onChange={e=>s('stepsTitle',e.target.value)} placeholder="Three Simple" /></F>
+          <F label="Title Accent (cyan)"><input style={inp} value={f.stepsTitleAccent||''} onChange={e=>s('stepsTitleAccent',e.target.value)} placeholder="Steps" /></F>
+        </FG>
+        <div style={{ marginTop:12 }}>
+          {f.steps.map((step,i) => (
+            <div key={step.id||i} style={{ background:C.bg, border:`1px solid ${C.border}`, borderRadius:10, padding:16, marginBottom:10 }}>
+              <FG cols={2}>
+                <F label="Icon"><input style={inp} value={step.icon||''} onChange={e=>ss(i,'icon',e.target.value)} /></F>
+                <F label="Title"><input style={inp} value={step.title||''} onChange={e=>ss(i,'title',e.target.value)} /></F>
+              </FG>
+              <div style={{marginBottom:10}}><F label="Body"><textarea style={{...txa,minHeight:55}} value={step.body||''} onChange={e=>ss(i,'body',e.target.value)} /></F></div>
+              <button style={bD} onClick={()=>{ if(confirm('Delete step?')) s('steps',f.steps.filter((_,x)=>x!==i)); }}>🗑️ Delete Step</button>
+            </div>
+          ))}
+          <AddBtn onClick={()=>s('steps',[...f.steps,{id:Date.now(),icon:'✨',title:'New Step',body:'Description here.'}])} label="Add Step" />
+        </div>
+      </SCard>
+
+      <SCard title="Form Text">
+        <FG cols={2}>
+          <F label="Form Title"><input style={inp} value={f.formTitle||''} onChange={e=>s('formTitle',e.target.value)} placeholder="Refer a Business" /></F>
+          <F label="Submit Button Text"><input style={inp} value={f.formSubmitText||''} onChange={e=>s('formSubmitText',e.target.value)} placeholder="Submit Referral →" /></F>
+        </FG>
+        <F label="Form Subtitle"><input style={inp} value={f.formSubtitle||''} onChange={e=>s('formSubtitle',e.target.value)} /></F>
+      </SCard>
+
+      <SCard title="Terms Note" subtitle="Small print shown below the submit button">
+        <F label="Terms Text"><textarea style={{...txa,minHeight:55}} value={f.termsNote||''} onChange={e=>s('termsNote',e.target.value)} /></F>
       </SCard>
     </div>
   );
@@ -1744,6 +1811,7 @@ export default function Admin() {
         {active==='portfolioPage'&& data?.portfolioPage&& <PortfolioPageSection{...sp} data={data.portfolioPage} />}
         {active==='careersPage'  && data?.careersPage  && <CareersPageSection  {...sp} data={data.careersPage} />}
         {active==='industriesPage' && data?.industriesPage && <IndustriesPageSection {...sp} data={data.industriesPage} />}
+        {active==='referralPage' && data?.referralPage && <ReferralPageSection {...sp} data={data.referralPage} />}
         {active==='aboutPage'    && data?.aboutPage    && <AboutPageSection    {...sp} data={data.aboutPage} />}
         {active==='contactPage'  && data?.contactPage  && <ContactPageSection  {...sp} data={data.contactPage} />}
         {active==='footer'       && data?.footer       && <FooterSection       {...sp} data={data.footer} />}

@@ -52,6 +52,30 @@ async function sendApplication({ fullName, email, phone, linkedin, position, mes
   await getTransporter().sendMail(mail);
 }
 
+async function sendReferral({ referrerName, referrerEmail, referrerPhone, businessName, contactName, contactEmail, contactPhone, message }) {
+  if (!isConfigured()) throw Object.assign(new Error('Email not configured'), { code: 'not_configured' });
+
+  const to = (process.env.REFERRAL_EMAIL || 'info@asproite.com').trim();
+  const lines = [
+    `<p><strong>Referred by:</strong> ${escapeHtml(referrerName)} (${escapeHtml(referrerEmail)}${referrerPhone ? ', ' + escapeHtml(referrerPhone) : ''})</p>`,
+    `<p><strong>Business being referred:</strong> ${escapeHtml(businessName)}</p>`,
+    `<p><strong>Contact Name:</strong> ${escapeHtml(contactName || 'Not provided')}</p>`,
+    `<p><strong>Contact Email:</strong> ${escapeHtml(contactEmail || 'Not provided')}</p>`,
+    `<p><strong>Contact Phone:</strong> ${escapeHtml(contactPhone || 'Not provided')}</p>`,
+    `<p><strong>Message:</strong><br>${escapeHtml(message || 'Not provided').replace(/\n/g, '<br>')}</p>`,
+  ];
+
+  const mail = {
+    from: `"Asproite Referrals" <${process.env.SMTP_USER}>`,
+    to,
+    replyTo: referrerEmail,
+    subject: `New Referral: ${businessName} — via ${referrerName}`,
+    html: lines.join('\n'),
+  };
+
+  await getTransporter().sendMail(mail);
+}
+
 async function sendLoginAlert({ ip, time, userAgent }) {
   if (!isConfigured()) return;
 
@@ -82,4 +106,4 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-module.exports = { isConfigured, sendApplication, sendLoginAlert };
+module.exports = { isConfigured, sendApplication, sendReferral, sendLoginAlert };

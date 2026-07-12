@@ -272,6 +272,25 @@ app.post('/site-api/careers/apply', applyLimiter, (req, res) => {
   });
 });
 
+// ── Referral submissions (email via SMTP) ───────────────────
+app.get('/site-api/referral/status', (req, res) => {
+  res.json({ configured: mailer.isConfigured() });
+});
+
+app.post('/site-api/referral/submit', applyLimiter, async (req, res) => {
+  const { referrerName, referrerEmail, referrerPhone, businessName, contactName, contactEmail, contactPhone, message } = req.body || {};
+  if (!referrerName || !referrerEmail || !businessName) {
+    return res.status(400).json({ error: 'Your name, your email, and the business name are required' });
+  }
+  try {
+    await mailer.sendReferral({ referrerName, referrerEmail, referrerPhone, businessName, contactName, contactEmail, contactPhone, message });
+    res.json({ ok: true });
+  } catch (e) {
+    if (e.code === 'not_configured') return res.status(503).json({ error: 'not_configured' });
+    res.status(502).json({ error: 'Could not send referral. Please try again or email us directly.' });
+  }
+});
+
 // ── Static site ──────────────────────────────────────────────
 app.use(express.static(path.join(__dirname, 'dist')));
 

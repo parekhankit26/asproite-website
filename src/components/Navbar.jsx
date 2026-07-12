@@ -30,6 +30,7 @@ export default function Navbar() {
     { to: '/careers', label: 'Careers' },
     { to: '/contact', label: 'Contact' },
     { to: '/it-health-check', label: 'IT Health Check', highlight: true },
+    { to: '/referral-program', label: 'Referral Program' },
   ];
 
   const isActive = (path) =>
