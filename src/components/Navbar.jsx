@@ -30,7 +30,7 @@ export default function Navbar() {
     { to: '/careers', label: 'Careers' },
     { to: '/contact', label: 'Contact' },
     { to: '/it-health-check', label: 'IT Health Check', highlight: true },
-    { to: '/referral-program', label: 'Referral Program' },
+    { to: '/referral-program', label: 'Refer & Earn', highlight: true },
   ];
 
   const isActive = (path) =>
@@ -75,6 +75,7 @@ export default function Navbar() {
               border: '1px solid var(--cyan)', borderRadius: 4,
               transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 5,
             }}
+              className="nav-badge"
               onMouseEnter={e => { e.currentTarget.style.background = 'var(--cyan)'; e.currentTarget.style.color = '#000'; }}
               onMouseLeave={e => {
                 if (!isActive('/it-health-check')) {
@@ -83,6 +84,27 @@ export default function Navbar() {
                 }
               }}>
               <span>⚡</span> Free IT Audit
+            </Link>
+          </li>
+          {/* Referral Program — revenue-driving CTA highlight */}
+          <li>
+            <Link to="/referral-program" style={{
+              fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: isActive('/referral-program') ? '#000' : 'var(--cyan)',
+              textDecoration: 'none', padding: '7px 14px',
+              background: isActive('/referral-program') ? 'var(--cyan)' : 'rgba(0,212,255,0.08)',
+              border: '1px solid var(--cyan)', borderRadius: 4,
+              transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 5,
+            }}
+              className="nav-badge"
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--cyan)'; e.currentTarget.style.color = '#000'; }}
+              onMouseLeave={e => {
+                if (!isActive('/referral-program')) {
+                  e.currentTarget.style.background = 'rgba(0,212,255,0.08)';
+                  e.currentTarget.style.color = 'var(--cyan)';
+                }
+              }}>
+              <span>🎁</span> Refer & Earn
             </Link>
           </li>
           <li>
@@ -121,8 +143,9 @@ export default function Navbar() {
           .nav-link:hover { color: var(--cyan) !important; }
           .nav-link:hover::after, .nav-link.active::after { width: 100%; }
           @media (max-width: 1300px) and (min-width: 769px) {
-            nav { padding: 18px 28px !important; }
-            .nav-desktop { gap: 18px !important; }
+            nav { padding: 16px 20px !important; }
+            .nav-desktop { gap: 12px !important; }
+            .nav-badge { padding: 6px 10px !important; }
           }
           @media (max-width: 768px) {
             nav { padding: 16px 20px !important; }
