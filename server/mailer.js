@@ -135,10 +135,35 @@ async function sendLoginAlert({ ip, time, userAgent }) {
   await getTransporter().sendMail(mail).catch(() => {});
 }
 
+async function sendPasswordReset({ resetUrl }) {
+  if (!isConfigured()) throw Object.assign(new Error('Email not configured'), { code: 'not_configured' });
+
+  const to = (process.env.ADMIN_RECOVERY_EMAIL || 'info@asproite.com').trim();
+  const text = [
+    'A password reset was requested for the Asproite admin panel.',
+    `Set a new password here (expires in 15 minutes): ${resetUrl}`,
+    "If you didn't request this, you can safely ignore this email — your password won't change unless the link above is used.",
+  ].join('\n\n');
+
+  const mail = {
+    from: `"Asproite Admin" <${process.env.SMTP_USER}>`,
+    to,
+    subject: 'Reset your Asproite admin password',
+    text,
+    html: [
+      `<p>A password reset was requested for the Asproite admin panel.</p>`,
+      `<p><a href="${resetUrl}">Click here to set a new password</a> (expires in 15 minutes).</p>`,
+      `<p>If you didn't request this, you can safely ignore this email — your password won't change unless the link above is used.</p>`,
+    ].join('\n'),
+  };
+
+  await getTransporter().sendMail(mail);
+}
+
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-module.exports = { isConfigured, sendApplication, sendReferral, sendLoginAlert };
+module.exports = { isConfigured, sendApplication, sendReferral, sendLoginAlert, sendPasswordReset };

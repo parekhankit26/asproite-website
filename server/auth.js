@@ -7,6 +7,7 @@ const store = require('./store');
 const SESSION_COOKIE = 'asproite_session';
 const IDLE_TTL_MS = 15 * 60 * 1000; // sliding: renewed on every activity
 const ABSOLUTE_TTL_MS = 8 * 60 * 60 * 1000; // hard cap regardless of activity
+const RESET_TTL_MS = 15 * 60 * 1000; // password-reset links expire quickly
 
 // Sessions are stateless, signed tokens rather than a server-side store —
 // this host restarts the app far more often than expected, runs more than
@@ -60,6 +61,7 @@ function decodeAndVerifySignature(token) {
 function createSession() {
   const now = Date.now();
   const payload = {
+    purpose: 'session', // prevents a password-reset token from ever validating as a session
     iat: now, // fixed for the life of the session; enforces the absolute cap
     exp: now + IDLE_TTL_MS, // sliding; extended by renewSession on activity
     pwdAt: store.getPasswordChangedAt(), // password change invalidates older tokens
@@ -84,6 +86,7 @@ function destroySession() {
 function isValidSession(token) {
   const payload = decodeAndVerifySignature(token);
   if (!payload) return false;
+  if (payload.purpose !== 'session') return false;
   if (typeof payload.exp !== 'number' || payload.exp <= Date.now()) return false;
   if (typeof payload.iat !== 'number' || Date.now() - payload.iat > ABSOLUTE_TTL_MS) return false;
   if (payload.pwdAt !== store.getPasswordChangedAt()) return false;
@@ -98,10 +101,12 @@ function isValidSession(token) {
 function renewSession(token) {
   const payload = decodeAndVerifySignature(token);
   if (!payload) return null;
+  if (payload.purpose !== 'session') return null;
   if (typeof payload.iat !== 'number' || Date.now() - payload.iat > ABSOLUTE_TTL_MS) return null;
   if (payload.pwdAt !== store.getPasswordChangedAt()) return null;
 
   return encodeToken({
+    purpose: 'session',
     iat: payload.iat,
     exp: Date.now() + IDLE_TTL_MS,
     pwdAt: payload.pwdAt,
@@ -154,6 +159,31 @@ function verifyPassword(password) {
 function setPassword(newPassword) {
   const hash = bcrypt.hashSync(String(newPassword), 12);
   store.setPasswordHash(hash);
+}
+
+// ── Password reset (email link) ─────────────────────────────
+// Stateless like sessions — no reset-token database to keep in sync across
+// instances. The token embeds the password epoch (pwdAt) at issuance time;
+// since setPassword() bumps that epoch, a token is automatically single-use
+// — the moment it's redeemed once, verifying it again fails on the same
+// pwdAt check that already invalidates sessions on password change.
+function createPasswordResetToken() {
+  const now = Date.now();
+  return encodeToken({
+    purpose: 'pwreset',
+    iat: now,
+    exp: now + RESET_TTL_MS,
+    pwdAt: store.getPasswordChangedAt(),
+  });
+}
+
+function isValidPasswordResetToken(token) {
+  const payload = decodeAndVerifySignature(token);
+  if (!payload) return false;
+  if (payload.purpose !== 'pwreset') return false;
+  if (typeof payload.exp !== 'number' || payload.exp <= Date.now()) return false;
+  if (payload.pwdAt !== store.getPasswordChangedAt()) return false;
+  return true;
 }
 
 // ── Two-factor authentication (TOTP) ────────────────────────
@@ -223,6 +253,7 @@ module.exports = {
   SESSION_COOKIE,
   IDLE_TTL_MS,
   ABSOLUTE_TTL_MS,
+  RESET_TTL_MS,
   createSession,
   renewSession,
   destroySession,
@@ -232,6 +263,8 @@ module.exports = {
   requireAuth,
   verifyPassword,
   setPassword,
+  createPasswordResetToken,
+  isValidPasswordResetToken,
   is2FAEnabled,
   verifyTOTP,
   generate2FASetup,

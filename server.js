@@ -57,6 +57,14 @@ const applyLimiter = rateLimit({
   message: { error: 'Too many applications submitted. Please try again later.' },
 });
 
+const resetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many reset requests. Try again in an hour.' },
+});
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -121,6 +129,35 @@ app.post('/site-api/admin/change-password', auth.requireAuth, (req, res) => {
   // too, so re-issue a fresh one instead of logging the admin out.
   const token = auth.createSession();
   auth.setSessionCookie(res, token);
+  res.json({ ok: true });
+});
+
+// ── Password reset (email link) ─────────────────────────────
+// Deliberately does not accept an email address from the caller — there's
+// exactly one admin account, and the reset always goes to the fixed
+// recovery address configured server-side. Accepting a caller-supplied
+// address would let anyone redirect where the reset link is sent.
+app.post('/site-api/admin/forgot-password', resetLimiter, async (req, res) => {
+  const token = auth.createPasswordResetToken();
+  const resetUrl = `${req.protocol}://${req.get('host')}/admin/reset-password?token=${token}`;
+  try {
+    await mailer.sendPasswordReset({ resetUrl });
+    res.json({ ok: true });
+  } catch (e) {
+    if (e.code === 'not_configured') return res.status(503).json({ error: 'not_configured' });
+    res.status(502).json({ error: 'Could not send reset email. Please try again later.' });
+  }
+});
+
+app.post('/site-api/admin/reset-password', resetLimiter, (req, res) => {
+  const { token, newPassword } = req.body || {};
+  if (!auth.isValidPasswordResetToken(token)) {
+    return res.status(400).json({ error: 'This reset link is invalid or has expired. Request a new one.' });
+  }
+  if (!newPassword || String(newPassword).length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters' });
+  }
+  auth.setPassword(newPassword);
   res.json({ ok: true });
 });
 

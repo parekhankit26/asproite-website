@@ -434,6 +434,24 @@ export async function changeAdminPassword(currentPw, newPw) {
   return { ok: true };
 }
 
+export async function requestPasswordReset() {
+  const res = await fetch('/site-api/admin/forgot-password', { method: 'POST' });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Could not send reset email');
+  return { ok: true };
+}
+
+export async function resetPassword(token, newPassword) {
+  const res = await fetch('/site-api/admin/reset-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, newPassword }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Could not reset password');
+  return { ok: true };
+}
+
 // Submits a new GitHub token / Anthropic key to the server for validation
 // and storage. The value is sent once, over the authenticated session, and
 // never returned — only a configured/not-configured status comes back.

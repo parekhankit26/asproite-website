@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { adminLogin, adminLoginVerify2FA, adminLogout, adminHeartbeat, adminGetData, adminSave, adminUpload, isLoggedIn, changeAdminPassword, getConfigStatus, setGitHubToken, clearGitHubToken, setAnthropicKey, clearAnthropicKey, get2FAStatus, setup2FA, confirm2FA, disable2FA } from '../data/api.js';
+import { adminLogin, adminLoginVerify2FA, adminLogout, adminHeartbeat, adminGetData, adminSave, adminUpload, isLoggedIn, changeAdminPassword, requestPasswordReset, resetPassword, getConfigStatus, setGitHubToken, clearGitHubToken, setAnthropicKey, clearAnthropicKey, get2FAStatus, setup2FA, confirm2FA, disable2FA } from '../data/api.js';
 import { Cursor } from '../components/index.jsx';
 
 const C = {
@@ -172,6 +172,9 @@ function Login({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [forgot, setForgot] = useState(false);
   const [needs2FA, setNeeds2FA] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetErr, setResetErr] = useState('');
 
   const submit = async (e) => {
     e.preventDefault(); setLoading(true); setErr('');
@@ -189,6 +192,13 @@ function Login({ onLogin }) {
     try { await adminLoginVerify2FA(pw, code); onLogin(); }
     catch (e) { setErr(e.message || 'Invalid code. Please try again.'); }
     setLoading(false);
+  };
+
+  const sendReset = async () => {
+    setResetLoading(true); setResetErr('');
+    try { await requestPasswordReset(); setResetSent(true); }
+    catch (e) { setResetErr(e.message || 'Could not send reset email.'); }
+    setResetLoading(false);
   };
 
   return (
@@ -237,11 +247,83 @@ function Login({ onLogin }) {
           ) : (
             <div>
               <h3 style={{ fontFamily:font.head, color:C.text, marginBottom:8, fontSize:'1.1rem' }}>🔑 Forgot Password</h3>
-              <p style={{ color:C.muted, fontSize:'0.84rem', lineHeight:1.65, marginBottom:20 }}>
-                For security, passwords can't be reset from this screen. Whoever has access to the server can reset it by deleting <code style={{ background:C.surface2, padding:'1px 6px', borderRadius:4, color:C.cyan }}>data/admin-auth.json</code> and restarting the app — a new one-time password will be printed to the server log, or set an <code style={{ background:C.surface2, padding:'1px 6px', borderRadius:4, color:C.cyan }}>ADMIN_PASSWORD</code> environment variable before restarting.
-              </p>
-              <button onClick={() => setForgot(false)} style={{ ...bG, width:'100%', justifyContent:'center' }}>Back to Sign In</button>
+              {resetSent ? (
+                <p style={{ color:C.success, fontSize:'0.84rem', lineHeight:1.65, marginBottom:20 }}>
+                  ✅ If a recovery email is configured, a reset link has been sent — check the inbox. The link expires in 15 minutes.
+                </p>
+              ) : (
+                <>
+                  <p style={{ color:C.muted, fontSize:'0.84rem', lineHeight:1.65, marginBottom:20 }}>
+                    We'll email a password reset link to the configured recovery address.
+                  </p>
+                  {resetErr && <div style={{ background:C.dangerDim, border:`1px solid rgba(255,71,87,0.2)`, borderRadius:8, padding:'10px 14px', marginBottom:16, color:C.danger, fontSize:'0.82rem' }}>⚠️ {resetErr}</div>}
+                  <button onClick={sendReset} disabled={resetLoading} style={{ ...bP, width:'100%', padding:'13px', fontSize:'0.95rem', justifyContent:'center', borderRadius:9, marginBottom:12 }}>{resetLoading?'⟳ Sending...':'📧 Send Reset Link'}</button>
+                </>
+              )}
+              <button onClick={() => { setForgot(false); setResetSent(false); setResetErr(''); }} style={{ ...bG, width:'100%', justifyContent:'center' }}>Back to Sign In</button>
             </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── RESET PASSWORD (from emailed link) ─────────────────────
+export function ResetPassword() {
+  const token = new URLSearchParams(window.location.search).get('token') || '';
+  const [newPw, setNewPw] = useState('');
+  const [conf, setConf] = useState('');
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [done, setDone] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault(); setErr('');
+    if (!newPw || !conf) { setErr('Please fill in both fields.'); return; }
+    if (newPw !== conf) { setErr('Passwords do not match.'); return; }
+    if (newPw.length < 6) { setErr('Password must be at least 6 characters.'); return; }
+    setLoading(true);
+    try { await resetPassword(token, newPw); setDone(true); }
+    catch (e) { setErr(e.message || 'Could not reset password.'); }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight:'100vh', background:C.bg, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:font.body, position:'relative', overflow:'hidden' }}>
+      <Cursor />
+      <div style={{ position:'absolute', inset:0, background:`radial-gradient(ellipse 80% 60% at 50% 0%,rgba(0,212,255,0.06) 0%,transparent 70%)` }} />
+      <div style={{ width:440, position:'relative', zIndex:1 }}>
+        <div style={{ textAlign:'center', marginBottom:40 }}>
+          <div style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:64, height:64, background:C.cyanDim, border:`1px solid ${C.border}`, borderRadius:16, marginBottom:20, fontSize:'1.8rem' }}>🔑</div>
+          <div style={{ fontFamily:font.head, fontSize:'2rem', fontWeight:800, color:C.text }}>ASPRO<span style={{ color:C.cyan }}>.</span>ITE</div>
+          <div style={{ color:C.muted, fontSize:'0.88rem', marginTop:6 }}>Set a New Password</div>
+        </div>
+        <div style={{ background:C.surface, border:`1px solid ${C.border}`, borderRadius:16, padding:'36px 40px', position:'relative', overflow:'hidden', boxShadow:`0 24px 80px rgba(0,0,0,0.5)` }}>
+          <div style={{ position:'absolute', top:0, left:'20%', right:'20%', height:1, background:`linear-gradient(90deg,transparent,${C.cyan},transparent)` }} />
+          {!token ? (
+            <div style={{ textAlign:'center' }}>
+              <p style={{ color:C.danger, fontSize:'0.88rem', lineHeight:1.65, marginBottom:20 }}>⚠️ No reset token found. Use the link from the reset email.</p>
+              <a href="/admin" style={{ ...bG, width:'100%', justifyContent:'center', textDecoration:'none', display:'flex' }}>Back to Sign In</a>
+            </div>
+          ) : done ? (
+            <div style={{ textAlign:'center' }}>
+              <p style={{ color:C.success, fontSize:'0.9rem', lineHeight:1.65, marginBottom:20 }}>✅ Password updated. Every other session has been signed out.</p>
+              <a href="/admin" style={{ ...bP, width:'100%', justifyContent:'center', textDecoration:'none', display:'flex', padding:'13px', borderRadius:9 }}>→ Sign In Now</a>
+            </div>
+          ) : (
+            <form onSubmit={submit}>
+              <div style={{ marginBottom:16 }}>
+                <label style={{ ...lbl, marginBottom:8 }}>New Password</label>
+                <input type="password" style={{ ...inp, fontSize:'1rem' }} placeholder="At least 6 characters" value={newPw} onChange={e=>setNewPw(e.target.value)} autoFocus />
+              </div>
+              <div style={{ marginBottom:24 }}>
+                <label style={{ ...lbl, marginBottom:8 }}>Confirm New Password</label>
+                <input type="password" style={{ ...inp, fontSize:'1rem' }} placeholder="Repeat new password" value={conf} onChange={e=>setConf(e.target.value)} />
+              </div>
+              {err && <div style={{ background:C.dangerDim, border:`1px solid rgba(255,71,87,0.2)`, borderRadius:8, padding:'10px 14px', marginBottom:18, color:C.danger, fontSize:'0.82rem' }}>⚠️ {err}</div>}
+              <button type="submit" style={{ ...bP, width:'100%', padding:'13px', fontSize:'0.95rem', justifyContent:'center', borderRadius:9 }} disabled={loading}>{loading?'⟳ Updating...':'✓ Set New Password'}</button>
+            </form>
           )}
         </div>
       </div>
