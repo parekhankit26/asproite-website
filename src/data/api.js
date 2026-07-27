@@ -122,11 +122,21 @@ function getDefaults() {
       formSubmitText:'Submit Referral →',
       termsNote:'Referral rewards are at Asproite\'s discretion and confirmed once the referred business becomes a paying client.',
     },
+    proposalPage: {
+      pageTitle:'Get Your Custom IT', pageTitleAccent:'Roadmap in 60 Seconds',
+      subtitle:"Describe your business and what you need — our AI builds a real, itemised proposal on the spot, pulling only from services we actually offer. No sales call required to get started.",
+      formTitle:'Tell Us About Your Business', formSubtitle:"The more detail you give, the more useful your roadmap will be.",
+      formSubmitText:'Generate My Roadmap →',
+      loadingText:'Analysing your business and building your roadmap...',
+      resultsTitle:'Your Custom Roadmap',
+      disclaimerNote:'This is an AI-generated estimate based on the details you provided — a free consultation with our team will refine it into an exact quote.',
+      ctaText:'Book a Free Consultation',
+    },
     footer: {
       description:'Asproite Cloud and Consultancy — your end-to-end IT partner for over 25 years.',
       servicesHeading:'Services', companyHeading:'Company',
       serviceLinks:['Website Development','Software Solutions','IT Support','Cloud Services','AI Solutions','Hardware Decommissioning'],
-      companyLinks:['About Us','Portfolio','Industries','Referral Program','Careers','Contact Us'],
+      companyLinks:['About Us','Portfolio','Industries','Referral Program','AI Roadmap','Careers','Contact Us'],
       newsletterTitle:'Stay Updated', newsletterSubtitle:'Get the latest IT insights and news from Asproite.',
       linkedinUrl:'#', twitterUrl:'#', facebookUrl:'#', instagramUrl:'#',
       copyrightName:'Asproite Cloud and Consultancy Ltd',
@@ -450,6 +460,18 @@ export async function resetPassword(token, newPassword) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || 'Could not reset password');
   return { ok: true };
+}
+
+export async function generateProposal(data) {
+  const res = await fetch('/site-api/proposal/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (res.status === 503) return { notConfigured: true };
+  if (!res.ok) throw new Error(body.error || 'Could not generate proposal');
+  return body;
 }
 
 // Submits a new GitHub token / Anthropic key to the server for validation

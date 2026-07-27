@@ -27,6 +27,7 @@ const SECTIONS = [
   { id:'careersPage',  label:'Careers Page',   icon:'💼', desc:'Header, perks, CTA' },
   { id:'industriesPage', label:'Industries Page', icon:'🏭', desc:'Header, CTA' },
   { id:'referralPage',   label:'Referral Program', icon:'🤝', desc:'Reward, steps, form text' },
+  { id:'proposalPage',   label:'AI Roadmap Page', icon:'✨', desc:'Header, form, results text' },
   { id:'aboutPage',    label:'About Page',     icon:'📖', desc:'Mission, values, sections' },
   { id:'contactPage',  label:'Contact Page',   icon:'📞', desc:'Headings, info cards, form' },
   { id:'footer',       label:'Footer',         icon:'📌', desc:'Links, newsletter, socials' },
@@ -721,6 +722,42 @@ function ReferralPageSection({ data, onSave, saving }) {
 
       <SCard title="Terms Note" subtitle="Small print shown below the submit button">
         <F label="Terms Text"><textarea style={{...txa,minHeight:55}} value={f.termsNote||''} onChange={e=>s('termsNote',e.target.value)} /></F>
+      </SCard>
+    </div>
+  );
+}
+
+// ── AI PROPOSAL GENERATOR PAGE ──────────────────────────────
+function ProposalPageSection({ data, onSave, saving }) {
+  const [f, setF] = useState({ ...data });
+  const s = (k,v) => setF(p=>({...p,[k]:v}));
+  return (
+    <div>
+      <PH title="✨ AI Roadmap Page" subtitle="Header, form text, and results copy" onSave={()=>onSave('proposalPage',f)} saving={saving} />
+
+      <SCard title="Page Header">
+        <FG cols={2}>
+          <F label="Page Title"><input style={inp} value={f.pageTitle||''} onChange={e=>s('pageTitle',e.target.value)} placeholder="Get Your Custom IT" /></F>
+          <F label="Page Title Accent (cyan)"><input style={inp} value={f.pageTitleAccent||''} onChange={e=>s('pageTitleAccent',e.target.value)} placeholder="Roadmap in 60 Seconds" /></F>
+        </FG>
+        <F label="Page Subtitle"><textarea style={txa} value={f.subtitle||''} onChange={e=>s('subtitle',e.target.value)} /></F>
+      </SCard>
+
+      <SCard title="Form Text">
+        <FG cols={2}>
+          <F label="Form Title"><input style={inp} value={f.formTitle||''} onChange={e=>s('formTitle',e.target.value)} placeholder="Tell Us About Your Business" /></F>
+          <F label="Submit Button Text"><input style={inp} value={f.formSubmitText||''} onChange={e=>s('formSubmitText',e.target.value)} placeholder="Generate My Roadmap →" /></F>
+        </FG>
+        <F label="Form Subtitle"><input style={inp} value={f.formSubtitle||''} onChange={e=>s('formSubtitle',e.target.value)} /></F>
+      </SCard>
+
+      <SCard title="Loading & Results Text">
+        <div style={{marginBottom:14}}><F label="Loading Message"><input style={inp} value={f.loadingText||''} onChange={e=>s('loadingText',e.target.value)} placeholder="Analysing your business and building your roadmap..." /></F></div>
+        <FG cols={2}>
+          <F label="Results Section Title"><input style={inp} value={f.resultsTitle||''} onChange={e=>s('resultsTitle',e.target.value)} placeholder="Your Custom Roadmap" /></F>
+          <F label="CTA Button Text"><input style={inp} value={f.ctaText||''} onChange={e=>s('ctaText',e.target.value)} placeholder="Book a Free Consultation" /></F>
+        </FG>
+        <F label="Disclaimer Note"><textarea style={{...txa,minHeight:55}} value={f.disclaimerNote||''} onChange={e=>s('disclaimerNote',e.target.value)} /></F>
       </SCard>
     </div>
   );
@@ -1894,6 +1931,7 @@ export default function Admin() {
         {active==='careersPage'  && data?.careersPage  && <CareersPageSection  {...sp} data={data.careersPage} />}
         {active==='industriesPage' && data?.industriesPage && <IndustriesPageSection {...sp} data={data.industriesPage} />}
         {active==='referralPage' && data?.referralPage && <ReferralPageSection {...sp} data={data.referralPage} />}
+        {active==='proposalPage' && data?.proposalPage && <ProposalPageSection {...sp} data={data.proposalPage} />}
         {active==='aboutPage'    && data?.aboutPage    && <AboutPageSection    {...sp} data={data.aboutPage} />}
         {active==='contactPage'  && data?.contactPage  && <ContactPageSection  {...sp} data={data.contactPage} />}
         {active==='footer'       && data?.footer       && <FooterSection       {...sp} data={data.footer} />}

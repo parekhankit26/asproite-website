@@ -31,6 +31,7 @@ export default function Navbar() {
     { to: '/contact', label: 'Contact' },
     { to: '/it-health-check', label: 'IT Health Check', highlight: true },
     { to: '/referral-program', label: 'Refer & Earn', highlight: true },
+    { to: '/get-proposal', label: 'AI Roadmap', highlight: true },
   ];
 
   const isActive = (path) =>
@@ -107,6 +108,27 @@ export default function Navbar() {
               <span>🎁</span> Refer & Earn
             </Link>
           </li>
+          {/* AI Proposal Generator — flagship lead-gen/conversion tool */}
+          <li>
+            <Link to="/get-proposal" style={{
+              fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: isActive('/get-proposal') ? '#000' : 'var(--cyan)',
+              textDecoration: 'none', padding: '7px 14px',
+              background: isActive('/get-proposal') ? 'var(--cyan)' : 'rgba(0,212,255,0.08)',
+              border: '1px solid var(--cyan)', borderRadius: 4,
+              transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 5,
+            }}
+              className="nav-badge"
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--cyan)'; e.currentTarget.style.color = '#000'; }}
+              onMouseLeave={e => {
+                if (!isActive('/get-proposal')) {
+                  e.currentTarget.style.background = 'rgba(0,212,255,0.08)';
+                  e.currentTarget.style.color = 'var(--cyan)';
+                }
+              }}>
+              <span>✨</span> AI Quote
+            </Link>
+          </li>
           <li>
             <Link to="/contact" style={{
               fontSize: '0.78rem', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase',
@@ -144,8 +166,8 @@ export default function Navbar() {
           .nav-link:hover::after, .nav-link.active::after { width: 100%; }
           @media (max-width: 1300px) and (min-width: 769px) {
             nav { padding: 16px 20px !important; }
-            .nav-desktop { gap: 12px !important; }
-            .nav-badge { padding: 6px 10px !important; }
+            .nav-desktop { gap: 8px !important; }
+            .nav-badge { padding: 5px 8px !important; font-size: 0.66rem !important; white-space: nowrap !important; }
           }
           @media (max-width: 768px) {
             nav { padding: 16px 20px !important; }

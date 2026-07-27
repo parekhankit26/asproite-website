@@ -98,4 +98,93 @@ async function chat(messages) {
   return textBlock?.text || "I'm sorry, I didn't get a response. Please try again or contact us directly at info@asproite.com";
 }
 
-module.exports = { chat, isConfigured };
+function buildProposalPrompt(data) {
+  const si = data?.siteInfo || {};
+  const services = (data?.services || []).map(s =>
+    `- ${s.title}: ${s.description}`
+  ).join('\n');
+
+  return `You are generating an instant IT/digital transformation proposal for ${si.companyName || 'Asproite Cloud and Consultancy'}, a UK-based IT managed service provider. A website visitor has described their business and needs. Your job is to recommend which of Asproite's REAL services would help them, with brief reasoning and a realistic price range for each, based ONLY on the services listed below — never invent a service that isn't in this list.
+
+ASPROITE'S ACTUAL SERVICES:
+${services}
+
+PRICING GUIDANCE (approximate UK ranges — always frame as estimates pending a free consultation):
+- Website Development: £1,500–£5,000 small business sites, £5,000–£20,000+ custom builds
+- Software Solutions: £5,000–£20,000 simple apps, £20,000–£100,000+ enterprise
+- Web Design: £1,000–£4,000
+- IT Support: from £150/month for small teams, custom quote for larger organisations
+- Cloud Services: £2,000–£10,000 small setups, £10,000+ full enterprise migration
+- Digital Marketing: £500–£3,000/month depending on scope
+- Mobile App Solutions: £8,000–£40,000+
+- AI Solutions: £5,000–£30,000+ depending on scope
+- Hardware Decommissioning: quoted per project based on volume
+
+Respond with ONLY a single valid JSON object, no markdown fences, no commentary, matching exactly this shape:
+{
+  "summary": "2-3 sentence plain-English summary of their situation and how Asproite can help, written directly to them",
+  "recommendedServices": [
+    { "service": "<exact service title from the list above>", "reasoning": "1-2 sentences on why this fits their specific situation", "estimatedRange": "£X–£Y" }
+  ],
+  "totalEstimatedRange": "£X–£Y",
+  "suggestedTimeline": "e.g. 6-10 weeks",
+  "nextSteps": "1-2 sentence encouraging call to action to book a free consultation for an exact quote"
+}
+
+Recommend 2-4 services maximum — only what's genuinely relevant, never pad the list. If the description is too vague to recommend anything specific, still recommend the closest 1-2 relevant services and mention in the summary that a quick call would help narrow things down.`;
+}
+
+// Generates a structured, multi-service proposal from a free-text business
+// description — a separate flow from the chat widget (much longer output,
+// strict JSON schema instead of conversational text, grounded only in
+// services that actually exist in site content).
+async function generateProposal({ businessName, industry, description, budgetRange }) {
+  const apiKey = secrets.getAnthropicKey();
+  if (!apiKey) throw Object.assign(new Error('AI not configured'), { code: 'not_configured' });
+
+  const siteData = content.readLocal();
+  const userMessage = [
+    businessName ? `Business name: ${businessName}` : null,
+    industry ? `Industry: ${industry}` : null,
+    budgetRange ? `Budget range: ${budgetRange}` : null,
+    `Description of their business and needs: ${description}`,
+  ].filter(Boolean).join('\n');
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-5',
+      max_tokens: 1500,
+      system: buildProposalPrompt(siteData),
+      messages: [{ role: 'user', content: userMessage }],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw Object.assign(new Error(err.error?.message || `Anthropic API error (${res.status})`), { code: 'upstream_error' });
+  }
+  const result = await res.json();
+  const textBlock = result.content?.find(block => block.type === 'text');
+  const raw = (textBlock?.text || '').trim();
+
+  try {
+    // Model occasionally wraps JSON in a markdown fence despite instructions
+    // not to — strip it defensively before parsing.
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '');
+    const proposal = JSON.parse(cleaned);
+    if (!proposal.summary || !Array.isArray(proposal.recommendedServices)) {
+      throw new Error('Malformed proposal shape');
+    }
+    return proposal;
+  } catch (e) {
+    throw Object.assign(new Error('Could not generate a valid proposal — please try again'), { code: 'parse_error' });
+  }
+}
+
+module.exports = { chat, isConfigured, generateProposal };

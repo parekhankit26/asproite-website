@@ -11,6 +11,7 @@ import Careers from './pages/Careers.jsx';
 import Contact from './pages/Contact.jsx';
 import { IndustriesIndex, IndustryDetail } from './pages/Industries.jsx';
 import Referral from './pages/Referral.jsx';
+import Proposal from './pages/Proposal.jsx';
 import Admin, { ResetPassword } from './pages/Admin.jsx';
 import ITHealthCheck from './pages/ITHealthCheck.jsx';
 import AsproiteAI from './components/AsproiteAI.jsx';
@@ -108,6 +109,7 @@ export default function App() {
                   <Route path="/industries" element={<IndustriesIndex />} />
                   <Route path="/industries/:slug" element={<IndustryDetail />} />
                   <Route path="/referral-program" element={<Referral />} />
+                  <Route path="/get-proposal" element={<Proposal />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/it-health-check" element={<ITHealthCheck />} />
                   <Route path="*" element={<NotFound />} />

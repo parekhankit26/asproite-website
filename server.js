@@ -65,6 +65,14 @@ const resetLimiter = rateLimit({
   message: { error: 'Too many reset requests. Try again in an hour.' },
 });
 
+const proposalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many proposal requests. Please try again in a few minutes.' },
+});
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -279,6 +287,37 @@ app.post('/site-api/ai-chat', chatLimiter, async (req, res) => {
     if (e.code === 'not_configured') return res.status(503).json({ error: 'not_configured' });
     if (e.code === 'bad_request') return res.status(400).json({ error: e.message });
     res.status(502).json({ error: 'AI service is temporarily unavailable' });
+  }
+});
+
+// ── AI Proposal Generator ───────────────────────────────────
+app.get('/site-api/proposal/status', (req, res) => {
+  res.json({ configured: ai.isConfigured() });
+});
+
+app.post('/site-api/proposal/generate', proposalLimiter, async (req, res) => {
+  const { businessName, contactName, contactEmail, contactPhone, industry, budgetRange, description } = req.body || {};
+  if (!businessName || !contactName || !contactEmail || !description) {
+    return res.status(400).json({ error: 'Business name, your name, email, and a description are required' });
+  }
+  if (description.length < 20) {
+    return res.status(400).json({ error: 'Please provide a bit more detail about your business and needs' });
+  }
+
+  try {
+    const proposal = await ai.generateProposal({ businessName, industry, description, budgetRange });
+
+    // Lead notification and the visitor's own copy are best-effort — a
+    // slow/failed email must never stop the visitor from seeing their
+    // proposal, which is the whole point of "instant".
+    mailer.sendProposalLead({ businessName, contactName, contactEmail, contactPhone, industry, budgetRange, description, proposal }).catch(() => {});
+    mailer.sendProposalCopy({ contactName, contactEmail, businessName, proposal }).catch(() => {});
+
+    res.json({ ok: true, proposal });
+  } catch (e) {
+    if (e.code === 'not_configured') return res.status(503).json({ error: 'not_configured' });
+    if (e.code === 'parse_error') return res.status(502).json({ error: e.message });
+    res.status(502).json({ error: 'AI service is temporarily unavailable. Please try again shortly.' });
   }
 });
 

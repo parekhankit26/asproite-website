@@ -160,10 +160,92 @@ async function sendPasswordReset({ resetUrl }) {
   await getTransporter().sendMail(mail);
 }
 
+// Notifies the team of a new AI-generated proposal request — this is the
+// actual lead-capture mechanism behind the "instant proposal" feature, not
+// just a novelty; every submission with contact details is a qualified,
+// self-described sales lead.
+async function sendProposalLead({ businessName, contactName, contactEmail, contactPhone, industry, budgetRange, description, proposal }) {
+  if (!isConfigured()) throw Object.assign(new Error('Email not configured'), { code: 'not_configured' });
+
+  const to = (process.env.PROPOSAL_EMAIL || 'inquiry@asproite.com').trim();
+  const servicesText = (proposal?.recommendedServices || [])
+    .map(s => `- ${s.service} (${s.estimatedRange}): ${s.reasoning}`).join('\n');
+  const servicesHtml = (proposal?.recommendedServices || [])
+    .map(s => `<li><strong>${escapeHtml(s.service)}</strong> (${escapeHtml(s.estimatedRange)}) — ${escapeHtml(s.reasoning)}</li>`).join('');
+
+  const text = [
+    `Business: ${businessName}`,
+    `Contact: ${contactName} (${contactEmail}${contactPhone ? ', ' + contactPhone : ''})`,
+    `Industry: ${industry || 'Not provided'}`,
+    `Budget range: ${budgetRange || 'Not provided'}`,
+    `Description:\n${description}`,
+    `\nAI-recommended services:\n${servicesText}`,
+    `\nEstimated total: ${proposal?.totalEstimatedRange || 'n/a'}`,
+    `Suggested timeline: ${proposal?.suggestedTimeline || 'n/a'}`,
+  ].join('\n\n');
+
+  const mail = {
+    from: `"Asproite Website" <${process.env.SMTP_USER}>`,
+    to,
+    replyTo: contactEmail,
+    subject: `Website enquiry: AI proposal request — ${businessName}`,
+    text,
+    html: [
+      `<p><strong>Business:</strong> ${escapeHtml(businessName)}</p>`,
+      `<p><strong>Contact:</strong> ${escapeHtml(contactName)} (${escapeHtml(contactEmail)}${contactPhone ? ', ' + escapeHtml(contactPhone) : ''})</p>`,
+      `<p><strong>Industry:</strong> ${escapeHtml(industry || 'Not provided')}</p>`,
+      `<p><strong>Budget range:</strong> ${escapeHtml(budgetRange || 'Not provided')}</p>`,
+      `<p><strong>Description:</strong><br>${escapeHtml(description).replace(/\n/g, '<br>')}</p>`,
+      `<p><strong>AI-recommended services:</strong></p><ul>${servicesHtml}</ul>`,
+      `<p><strong>Estimated total:</strong> ${escapeHtml(proposal?.totalEstimatedRange || 'n/a')}</p>`,
+      `<p><strong>Suggested timeline:</strong> ${escapeHtml(proposal?.suggestedTimeline || 'n/a')}</p>`,
+    ].join('\n'),
+  };
+
+  await getTransporter().sendMail(mail);
+}
+
+// Emails the visitor their own copy of the generated proposal — reinforces
+// perceived value and gives them something to reference or forward
+// internally at their own company.
+async function sendProposalCopy({ contactName, contactEmail, businessName, proposal }) {
+  if (!isConfigured()) return;
+
+  const servicesHtml = (proposal?.recommendedServices || [])
+    .map(s => `<li><strong>${escapeHtml(s.service)}</strong> (${escapeHtml(s.estimatedRange)}) — ${escapeHtml(s.reasoning)}</li>`).join('');
+  const servicesText = (proposal?.recommendedServices || [])
+    .map(s => `- ${s.service} (${s.estimatedRange}): ${s.reasoning}`).join('\n');
+
+  const mail = {
+    from: `"Asproite" <${process.env.SMTP_USER}>`,
+    to: contactEmail,
+    subject: `Your Asproite roadmap for ${businessName}`,
+    text: [
+      `Hi ${contactName},`,
+      proposal?.summary || '',
+      `Recommended services:\n${servicesText}`,
+      `Estimated total: ${proposal?.totalEstimatedRange || 'n/a'}`,
+      `Suggested timeline: ${proposal?.suggestedTimeline || 'n/a'}`,
+      proposal?.nextSteps || '',
+    ].join('\n\n'),
+    html: [
+      `<p>Hi ${escapeHtml(contactName)},</p>`,
+      `<p>${escapeHtml(proposal?.summary || '')}</p>`,
+      `<p><strong>Recommended services:</strong></p><ul>${servicesHtml}</ul>`,
+      `<p><strong>Estimated total:</strong> ${escapeHtml(proposal?.totalEstimatedRange || 'n/a')}</p>`,
+      `<p><strong>Suggested timeline:</strong> ${escapeHtml(proposal?.suggestedTimeline || 'n/a')}</p>`,
+      `<p>${escapeHtml(proposal?.nextSteps || '')}</p>`,
+    ].join('\n'),
+  };
+
+  // Best-effort — a failed courtesy copy must never fail the whole request.
+  await getTransporter().sendMail(mail).catch(() => {});
+}
+
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-module.exports = { isConfigured, sendApplication, sendReferral, sendLoginAlert, sendPasswordReset };
+module.exports = { isConfigured, sendApplication, sendReferral, sendLoginAlert, sendPasswordReset, sendProposalLead, sendProposalCopy };
