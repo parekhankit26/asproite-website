@@ -526,7 +526,7 @@
       "tags": [],
       "category": "web",
       "year": "2025",
-      "featured": true,
+      "featured": false,
       "image": "",
       "link": "https://www.aonehairsalon.com/"
     },
@@ -540,7 +540,7 @@
       "year": "2026",
       "featured": true,
       "image": "",
-      "link": "https://parekhankit26.github.io/GreenPlanet/"
+      "link": ""
     }
   ],
   "team": [
