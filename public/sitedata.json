@@ -747,5 +747,62 @@
     "formSubtitle": "Fill in the details below and we'll take it from there.",
     "formSubmitText": "Submit Referral →",
     "termsNote": "Referral rewards are at Asproite's discretion and confirmed once the referred business becomes a paying client."
+  },
+  "careersPage": {
+    "pageTitle": "Join Our",
+    "pageTitleAccent": "Team",
+    "subtitle": "Help us deliver exceptional IT solutions. Explore our open roles and grow your career with Asproite.",
+    "sectionLabel": "Open Positions",
+    "sectionTitle": "Current",
+    "sectionTitleAccent": "Openings",
+    "noOpeningsText": "We don't have any open positions right now, but we're always happy to hear from talented people. Send us your CV and we'll keep you in mind for future roles.",
+    "whySectionLabel": "Why Asproite",
+    "whySectionTitle": "Why Work",
+    "whySectionTitleAccent": "With Us",
+    "perks": [
+      {
+        "id": 1,
+        "icon": "💰",
+        "title": "Competitive Salary",
+        "body": "Market-leading pay with regular reviews."
+      },
+      {
+        "id": 2,
+        "icon": "🏥",
+        "title": "Health Cover",
+        "body": "Comprehensive private healthcare for you and your family."
+      },
+      {
+        "id": 3,
+        "icon": "🏡",
+        "title": "Flexible & Remote",
+        "body": "Hybrid and remote working options across all roles."
+      },
+      {
+        "id": 4,
+        "icon": "📚",
+        "title": "Learning Budget",
+        "body": "Annual budget for courses, certifications, and conferences."
+      },
+      {
+        "id": 5,
+        "icon": "🌴",
+        "title": "Generous Leave",
+        "body": "25+ days holiday plus bank holidays."
+      },
+      {
+        "id": 6,
+        "icon": "🚀",
+        "title": "Career Growth",
+        "body": "Clear progression paths and regular promotions."
+      }
+    ],
+    "formTitle": "Apply Now",
+    "formSubtitle": "Fill in your details below and we'll be in touch within 5 working days.",
+    "formSubmitText": "Submit Application →",
+    "ctaLabel": "Get In Touch",
+    "ctaTitle": "Don't See a Role",
+    "ctaTitleAccent": "That Fits?",
+    "ctaSubtitle": "We're always on the lookout for great people. Send us a speculative application."
   }
 }
