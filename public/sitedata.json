@@ -312,7 +312,6 @@
       "Portfolio",
       "Industries",
       "Referral Program",
-      "AI Roadmap",
       "Careers",
       "Contact Us"
     ],
@@ -487,7 +486,8 @@
       "category": "cloud",
       "year": "2024",
       "featured": true,
-      "image": ""
+      "image": "",
+      "link": ""
     },
     {
       "id": 2,
@@ -501,7 +501,8 @@
       "category": "mobile",
       "year": "2024",
       "featured": false,
-      "image": ""
+      "image": "",
+      "link": ""
     },
     {
       "id": 3,
@@ -514,7 +515,8 @@
       "category": "web",
       "year": "2023",
       "featured": false,
-      "image": ""
+      "image": "",
+      "link": ""
     },
     {
       "id": 1783780389717,
@@ -526,14 +528,26 @@
       "year": "2025",
       "featured": true,
       "image": "",
-      "link": ""
+      "link": "https://www.aonehairsalon.com/"
+    },
+    {
+      "id": 1785683567602,
+      "title": "GreenPlanet",
+      "icon": "🌿",
+      "description": "GreenPlanet are a global collective of foresters, scientists and volunteers restoring the wild places that keep this planet liveable — one canopy, one river, one returning species at a time.",
+      "tags": [],
+      "category": "design",
+      "year": "2026",
+      "featured": true,
+      "image": "",
+      "link": "https://parekhankit26.github.io/GreenPlanet/"
     }
   ],
   "team": [
     {
       "id": 1,
-      "name": "James Mitchell",
-      "role": "CEO & Founder",
+      "name": "Karthik Veeragoni",
+      "role": "CEO",
       "avatar": "👨‍💼",
       "bio": "15+ years in enterprise IT.",
       "image": ""
