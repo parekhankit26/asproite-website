@@ -816,5 +816,17 @@
     "ctaTitle": "We Work With",
     "ctaTitleAccent": "Every Sector",
     "ctaSubtitle": "Don't see your industry listed — we still want to hear from you. Get in touch and we'll show you how we can help."
+  },
+  "proposalPage": {
+    "pageTitle": "Get Your Custom IT",
+    "pageTitleAccent": "Roadmap in 60 Seconds",
+    "subtitle": "Describe your business and what you need — our AI builds a real, itemised proposal on the spot, pulling only from services we actually offer. No sales call required to get started.",
+    "formTitle": "Tell Us About Your Business",
+    "formSubtitle": "The more detail you give, the more useful your roadmap will be.",
+    "formSubmitText": "Generate My Roadmap →",
+    "loadingText": "Analysing your business and building your roadmap...",
+    "resultsTitle": "Your Custom Roadmap",
+    "disclaimerNote": "This is an AI-generated estimate based on the details you provided — a free consultation with our team will refine it into an exact quote.",
+    "ctaText": "Book a Free Consultation"
   }
 }
