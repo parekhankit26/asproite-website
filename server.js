@@ -1,6 +1,8 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
+const fs = require('fs');
+const crypto = require('crypto');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
@@ -79,6 +81,31 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     const ok = /\.(pdf|doc|docx)$/i.test(file.originalname);
     cb(ok ? null : new Error('Only PDF, DOC, or DOCX files are allowed'), ok);
+  },
+});
+
+// Admin image uploads (portfolio/team/etc) land on disk under data/uploads
+// and are referenced by a short URL path. They deliberately do NOT go into
+// sitedata.json as base64 data URLs — that was the original approach and it
+// silently broke saves: a single photo ballooned the content file past the
+// JSON body limit and the browser's localStorage cache quota, so uploaded
+// images looked fine until save, then vanished. data/ is gitignored and
+// untouched by builds, so uploads survive redeploys.
+const UPLOADS_DIR = path.join(__dirname, 'data', 'uploads');
+fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const imageUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase();
+      cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = /\.(jpe?g|png|gif|webp|svg|avif)$/i.test(file.originalname);
+    cb(ok ? null : new Error('Only JPG, PNG, GIF, WEBP, SVG, or AVIF images are allowed'), ok);
   },
 });
 
@@ -367,7 +394,23 @@ app.post('/site-api/referral/submit', applyLimiter, async (req, res) => {
   }
 });
 
+// ── Admin image uploads ─────────────────────────────────────
+app.post('/site-api/admin/upload', auth.requireAuth, (req, res) => {
+  imageUpload.single('image')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
+    if (!req.file) return res.status(400).json({ error: 'No image provided' });
+    res.json({ ok: true, url: `/uploads/${req.file.filename}` });
+  });
+});
+
 // ── Static site ──────────────────────────────────────────────
+// Uploaded images live outside dist/ so a rebuild can't wipe them; served
+// with normal caching rather than the no-cache headers applied above,
+// since each upload already gets a unique filename.
+app.use('/uploads', express.static(UPLOADS_DIR, {
+  setHeaders: (res) => res.setHeader('Cache-Control', 'public, max-age=31536000'),
+}));
+
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('*', (req, res) => {

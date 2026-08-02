@@ -131,21 +131,46 @@ export default function Portfolio() {
   );
 }
 
+// Normalises a user-entered project link. Admins routinely paste bare
+// domains ("example.com") — without a scheme the browser treats those as
+// relative paths and navigates to asproite.com/example.com instead of the
+// real site, so default to https:// when no scheme is present.
+function normalizeLink(link) {
+  const trimmed = String(link || '').trim();
+  if (!trimmed) return '';
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
 function ProjectCard({ project }) {
+  const href = normalizeLink(project.link);
+
+  // Same card markup whether or not a link exists — only the wrapper
+  // element changes, so the design is identical either way.
+  const Wrapper = href ? 'a' : 'div';
+  const wrapperProps = href
+    ? { href, target: '_blank', rel: 'noopener noreferrer' }
+    : {};
+
   return (
-    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', position: 'relative', transition: 'border-color 0.3s, transform 0.3s, box-shadow 0.3s', cursor: 'pointer' }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,212,255,0.35)'; e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 24px 60px rgba(0,0,0,0.6)'; e.currentTarget.querySelector('.proj-overlay').style.opacity = '1'; e.currentTarget.querySelector('.proj-emoji').style.transform = 'scale(1.15)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; e.currentTarget.querySelector('.proj-overlay').style.opacity = '0'; e.currentTarget.querySelector('.proj-emoji').style.transform = ''; }}>
+    <Wrapper {...wrapperProps}
+      style={{ display: 'block', textDecoration: 'none', color: 'inherit', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', position: 'relative', transition: 'border-color 0.3s, transform 0.3s, box-shadow 0.3s', cursor: href ? 'pointer' : 'default' }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(0,212,255,0.35)'; e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 24px 60px rgba(0,0,0,0.6)'; const o = e.currentTarget.querySelector('.proj-overlay'); if (o) o.style.opacity = '1'; const m = e.currentTarget.querySelector('.proj-emoji'); if (m) m.style.transform = 'scale(1.15)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; const o = e.currentTarget.querySelector('.proj-overlay'); if (o) o.style.opacity = '0'; const m = e.currentTarget.querySelector('.proj-emoji'); if (m) m.style.transform = ''; }}>
       <div style={{ aspectRatio: '16/10', position: 'relative', overflow: 'hidden', background: 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at center,rgba(0,212,255,0.08) 0%,transparent 70%)' }} />
-        <span className="proj-emoji" style={{ fontSize: project.featured ? '6rem' : '4rem', transition: 'transform 0.4s', position: 'relative', zIndex: 1 }}>{project.icon}</span>
+        {project.image ? (
+          <img className="proj-emoji" src={project.image} alt={project.title}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s', position: 'relative', zIndex: 1 }} />
+        ) : (
+          <span className="proj-emoji" style={{ fontSize: project.featured ? '6rem' : '4rem', transition: 'transform 0.4s', position: 'relative', zIndex: 1 }}>{project.icon}</span>
+        )}
         <div className="proj-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,212,255,0.06)', opacity: 0, transition: 'opacity 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
-          <button style={{ background: 'var(--bg2)', border: '1px solid var(--cyan)', color: 'var(--cyan)', padding: '10px 22px', borderRadius: 4, fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>View Project</button>
+          <span style={{ background: 'var(--bg2)', border: '1px solid var(--cyan)', color: 'var(--cyan)', padding: '10px 22px', borderRadius: 4, fontSize: '0.78rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>View Project</span>
         </div>
       </div>
       <div style={{ padding: '24px 26px' }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {project.tags.map(t => (
+          {(project.tags || []).map(t => (
             <span key={t} style={{ fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--cyan)', background: 'rgba(0,212,255,0.07)', border: '1px solid var(--border)', borderRadius: 100, padding: '3px 10px' }}>{t}</span>
           ))}
         </div>
@@ -156,6 +181,6 @@ function ProjectCard({ project }) {
           <span style={{ color: 'var(--cyan)', fontSize: '1.1rem' }}>→</span>
         </div>
       </div>
-    </div>
+    </Wrapper>
   );
 }

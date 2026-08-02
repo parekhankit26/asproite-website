@@ -1055,7 +1055,7 @@ function PortfolioSection({ data, onSave, saving }) {
   const [editing, setEditing] = useState(null);
   const save = (i,u) => { const n=[...items]; n[i]=u; setItems(n); setEditing(null); };
   const remove = (i) => { if(confirm('Delete?')) setItems(items.filter((_,x)=>x!==i)); };
-  const add = () => { setItems([...items,{id:Date.now(),title:'New Project',icon:'🚀',description:'',tags:[],category:'web',year:'2024',featured:false,image:''}]); setEditing(items.length); };
+  const add = () => { setItems([...items,{id:Date.now(),title:'New Project',icon:'🚀',description:'',tags:[],category:'web',year:'2024',featured:false,image:'',link:''}]); setEditing(items.length); };
   return (
     <div>
       <PH title="📂 Portfolio (Items)" subtitle={`${items.length} projects`} onSave={()=>onSave('portfolio',items)} saving={saving} extra={<button style={bG} onClick={add}>+ Add Project</button>} />
@@ -1091,6 +1091,7 @@ function PortfolioForm({ item, onSave, onCancel }) {
       </FG>
       <div style={{marginBottom:14}}><F label="Description"><textarea style={txa} value={f.description||''} onChange={e=>s('description',e.target.value)} /></F></div>
       <div style={{marginBottom:14}}><F label="Tags (comma separated)"><input style={inp} value={(f.tags||[]).join(', ')} onChange={e=>s('tags',e.target.value.split(',').map(t=>t.trim()).filter(Boolean))} /></F></div>
+      <div style={{marginBottom:14}}><F label="Project Website Link (optional)"><input style={inp} value={f.link||''} onChange={e=>s('link',e.target.value)} placeholder="https://example.com" /></F></div>
       <div style={{marginBottom:14}}><ImgUpload label="Project Image" value={f.image||''} onChange={v=>s('image',v)} /></div>
       <Toggle value={!!f.featured} onChange={v=>s('featured',v)} label="Featured Project" />
       <div style={{display:'flex',gap:10,marginTop:16}}>

@@ -153,7 +153,7 @@ function getDefaults() {
       {id:8,icon:'🤖',title:'AI Solutions',tagline:'Machine learning & automation',description:'Harness the power of artificial intelligence.',features:['Custom ML model development','NLP & chatbots','AI-driven automation'],category:'cloud',isNew:false},
       {id:9,icon:'🖥️',title:'Hardware Decommissioning',tagline:'Secure WEEE-compliant disposal',description:'Secure, compliant IT hardware decommissioning.',features:['Certified data destruction','WEEE-compliant recycling','Full audit documentation'],category:'infrastructure',isNew:true},
     ],
-    portfolio:[{id:1,title:'NovaTech Cloud Migration',icon:'☁️',description:'AWS cloud migration reducing costs by 40%.',tags:['Cloud','AWS'],category:'cloud',year:'2024',featured:true,image:''},{id:2,title:'MediConnect Patient App',icon:'📱',description:'Healthcare app connecting 15,000+ patients.',tags:['Mobile','React Native'],category:'mobile',year:'2024',featured:false,image:''},{id:3,title:'LuxeStore E-commerce',icon:'🛒',description:'Custom headless commerce platform.',tags:['Web Dev'],category:'web',year:'2023',featured:false,image:''}],
+    portfolio:[{id:1,title:'NovaTech Cloud Migration',icon:'☁️',description:'AWS cloud migration reducing costs by 40%.',tags:['Cloud','AWS'],category:'cloud',year:'2024',featured:true,image:'',link:''},{id:2,title:'MediConnect Patient App',icon:'📱',description:'Healthcare app connecting 15,000+ patients.',tags:['Mobile','React Native'],category:'mobile',year:'2024',featured:false,image:'',link:''},{id:3,title:'LuxeStore E-commerce',icon:'🛒',description:'Custom headless commerce platform.',tags:['Web Dev'],category:'web',year:'2023',featured:false,image:'',link:''}],
     team:[{id:1,name:'James Mitchell',role:'CEO & Founder',avatar:'👨‍💼',bio:'25+ years in enterprise IT.',image:''},{id:2,name:'Priya Sharma',role:'Head of Engineering',avatar:'👩‍💻',bio:'Full-stack architect.',image:''},{id:3,name:'David Chen',role:'AI Solutions Lead',avatar:'👨‍🔬',bio:'PhD in ML.',image:''},{id:4,name:'Sarah Blake',role:'Creative Director',avatar:'👩‍🎨',bio:'Award-winning designer.',image:''}],
     testimonials:[{id:1,text:'Asproite transformed our infrastructure. The cloud migration was flawless.',name:'Marcus Webb',role:'CTO, NovaTech Financial',avatar:'👨'},{id:2,text:'The MediConnect app exceeded every expectation.',name:'Dr. Aisha Patel',role:'Medical Director, MediConnect',avatar:'👩'},{id:3,text:'From design to launch in 8 weeks — conversion rate increased by 60%.',name:'Tom Lawson',role:'CEO, LuxeStore UK',avatar:'👨'}],
     faqs:[{id:1,q:'How quickly can you start?',a:'Typically within 1-2 weeks of agreeing scope.'},{id:2,q:'Do you work with small businesses?',a:'Absolutely. We work with organisations of all sizes.'},{id:3,q:'What is included in hardware decommissioning?',a:'Full asset inventory, certified data destruction, WEEE-compliant recycling, and audit documentation.'},{id:4,q:'Do you offer ongoing support?',a:'Yes — all projects include a post-launch support period.'}],
@@ -521,11 +521,21 @@ export async function getConfigStatus() {
     return { githubConfigured: false, aiConfigured: false, careersEmailConfigured: false, twoFactorEnabled: false };
   }
 }
+// Uploads the file to the server and returns a short URL path (e.g.
+// /uploads/1234-abcd.jpg). This used to read the file into a base64 data
+// URL entirely in the browser, which meant the whole image got embedded in
+// sitedata.json — a single photo pushed the content payload past the
+// server's JSON body limit and the localStorage cache quota, so saves
+// failed silently and the image disappeared after saving.
 export async function adminUpload(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve({ url: e.target.result });
-    reader.onerror = () => reject(new Error('Upload failed'));
-    reader.readAsDataURL(file);
+  const formData = new FormData();
+  formData.append('image', file);
+  const res = await fetch('/site-api/admin/upload', {
+    method: 'POST',
+    credentials: 'include',
+    body: formData,
   });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || 'Upload failed');
+  return { url: body.url };
 }
